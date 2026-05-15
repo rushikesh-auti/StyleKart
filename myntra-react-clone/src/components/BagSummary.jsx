@@ -52,3 +52,4 @@ const BagSummary = () => {
 };
 
 export default BagSummary;
+

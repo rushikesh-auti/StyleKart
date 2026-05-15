@@ -42,3 +42,4 @@ const BagItem = ({ item }) => {
 };
 
 export default BagItem;
+

@@ -52,3 +52,4 @@ const HomeItem = ({ item }) => {
 };
 
 export default HomeItem;
+

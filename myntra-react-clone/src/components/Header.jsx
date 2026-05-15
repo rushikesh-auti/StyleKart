@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 
 const Header = () => {
   const bag = useSelector((store) => store.bag);
-
+  
   return (
     <header>
       <div className="logo_container">
