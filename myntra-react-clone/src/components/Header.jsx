@@ -5,15 +5,15 @@ import { useSelector } from "react-redux";
 
 const Header = () => {
   const bag = useSelector((store) => store.bag);
-  
+
   return (
     <header>
       <div className="logo_container">
         <Link to="/">
           <img
             className="myntra_home"
-            src="images/myntra_logo.webp"
-            alt="Myntra Home"
+            src="images/stylekart.png"
+            alt="StyleKart"
           />
         </Link>
       </div>
