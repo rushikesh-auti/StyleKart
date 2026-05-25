@@ -1,16 +1,23 @@
 import { BsFillPersonFill } from "react-icons/bs";
 import { FaFaceGrinHearts, FaBagShopping } from "react-icons/fa6";
 import { Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { searchActions } from "../store/searchSlice";
 
 const Header = () => {
-  const bag = useSelector(
-    (store) => store.bag
-  );
+  const dispatch = useDispatch();
 
-  const wishlist = useSelector(
-    (store) => store.wishlist
-  );
+  const bag = useSelector((store) => store.bag || []);
+
+  const wishlist = useSelector((store) => store.wishlist || []);
+
+  const handleSearch = (event) => {
+    dispatch(
+      searchActions.setSearchText(
+        event.target.value
+      )
+    );
+  };
 
   return (
     <header>
@@ -18,7 +25,7 @@ const Header = () => {
         <Link to="/">
           <img
             className="stylekart_home"
-            src="images/stylekart.png"
+            src="/images/stylekart.png"
             alt="StyleKart"
           />
         </Link>
@@ -33,34 +40,25 @@ const Header = () => {
       </nav>
 
       <div className="search_bar">
-        <span className="material-symbols-outlined search_icon">
-          search
-        </span>
-
         <input
           className="search_input"
-          placeholder="Search for products, brands and more"
+          placeholder="Search products..."
+          onChange={handleSearch}
         />
       </div>
 
       <div className="action_bar">
-
         <div className="action_container">
           <BsFillPersonFill />
-          <span className="action_name">
-            Profile
-          </span>
+          <span>Profile</span>
         </div>
 
         <Link
           className="action_container"
-          to="/wishlist"
-        >
+          to="/wishlist">
           <FaFaceGrinHearts />
 
-          <span className="action_name">
-            Wishlist
-          </span>
+          <span>Wishlist</span>
 
           <span className="bag-item-count">
             {wishlist.length}
@@ -69,19 +67,14 @@ const Header = () => {
 
         <Link
           className="action_container"
-          to="/bag"
-        >
+          to="/bag">
           <FaBagShopping />
-
-          <span className="action_name">
-            Bag
-          </span>
+          <span>Bag</span>
 
           <span className="bag-item-count">
             {bag.length}
           </span>
         </Link>
-
       </div>
     </header>
   );

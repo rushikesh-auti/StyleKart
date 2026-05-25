@@ -4,14 +4,17 @@ import bagSlice from "./bagSlice";
 import itemsSlice from "./itemsSlice";
 import fetchStatusSlice from "./fetchStatusSlice";
 import wishlistReducer from "./wishlistSlice";
+import searchReducer from "./searchSlice";
 
-const styleKartStore = configureStore({
+const myntraStore = configureStore({
   reducer: {
     bag: bagSlice.reducer,
     items: itemsSlice.reducer,
-    fetchStatus: fetchStatusSlice.reducer,
+    fetchStatus:
+      fetchStatusSlice.reducer,
     wishlist: wishlistReducer,
+    search: searchReducer,
   },
 });
 
-export default styleKartStore;
+export default myntraStore;
