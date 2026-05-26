@@ -25,14 +25,10 @@ StyleKart is an online fashion shopping platform that allows users to browse pro
 - JavaScript
 - Bootstrap 5
 - Redux Toolkit
-- React Redux
-- React Router DOM
-- Vite
 
 ### Backend
 - Node.js
 - ExpressJS
-- Body Parser
 
 ## Project Structure
 
