@@ -69,6 +69,10 @@ StyleKart/
 └── README.md
 ```
 
+## Preview
+<img width="1883" height="906" alt="image" src="https://github.com/user-attachments/assets/82887460-8e39-4d54-b4c0-b53e8b47e95b" />
+
+
 ## Getting Started
 
 ### Prerequisites
