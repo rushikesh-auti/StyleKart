@@ -2,6 +2,10 @@
 
 A modern e-commerce fashion application inspired by Myntra, built using ReactJS and ExpressJS. This project demonstrates efficient state management using Redux Toolkit and provides a responsive shopping experience with product browsing and cart management functionality.
 
+## Live Demo
+
+https://stylekart-store.vercel.app/
+
 ## Overview
 
 StyleKart is an online fashion shopping platform that allows users to browse products and manage shopping items through a clean and responsive interface. The application follows a component-based architecture and centralized state management for scalability and maintainability.
