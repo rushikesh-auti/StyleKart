@@ -11,6 +11,8 @@ StyleKart is an online fashion shopping platform that allows users to browse pro
 - Browse fashion products
 - Add products to shopping bag/cart
 - Remove items from bag
+- Wishlist management
+- Product search functionality
 - Dynamic cart item count
 - Real-time UI updates
 - Responsive user interface
@@ -142,12 +144,12 @@ http://localhost:5173
 
 ## Future Enhancements
 
-- User authentication system
-- Wishlist functionality
+- User authentication and authorization
 - Payment gateway integration
-- Product search and filters
-- Order history page
-- Dark mode support
+- Order history and order tracking
 - Product reviews and ratings
-
+- Dark mode support
+- Product recommendations
+- Inventory management
+- Admin dashboard
 
