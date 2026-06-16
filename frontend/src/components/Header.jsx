@@ -8,7 +8,6 @@ import { searchActions } from "../store/searchSlice";
 
 const Header = () => {
   const dispatch = useDispatch();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const bag = useSelector((store) => store.bag || []);
   const wishlist = useSelector((store) => store.wishlist || []);
@@ -34,29 +33,11 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* <div
-          className="menu_icon"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
-        </div> */}
-
-        <nav className={`nav_bar ${menuOpen ? "active" : ""}`}>
-          <Link to="/" >
-            Men
-          </Link>
-
-          <Link to="/" >
-            Women
-          </Link>
-
-          <Link to="/" >
-            Kids
-          </Link>
-
-          <Link to="/" >
-            Beauty
-          </Link>
+        <nav className={`nav_bar `}>
+          <Link to="/">Men</Link>
+          <Link to="/">Women</Link>
+          <Link to="/">Kids</Link>
+          <Link to="/">Beauty</Link>
         </nav>
 
         <div className="search_bar">
