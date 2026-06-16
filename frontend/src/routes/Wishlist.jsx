@@ -100,7 +100,7 @@ const Wishlist = () => {
                       handleMoveToBag(product.id)
                     }
                   >
-                    Move to Bag
+                    Move to Cart
                   </button>
 
                   <button

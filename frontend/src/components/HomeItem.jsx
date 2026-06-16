@@ -95,7 +95,7 @@ const HomeItem = ({ item }) => {
           className="btn btn-add-bag btn-success"
           onClick={handleAddToBag}
         >
-          <GrAddCircle /> Add to Bag
+          <GrAddCircle /> Add to Cart
         </button>
       )}
 

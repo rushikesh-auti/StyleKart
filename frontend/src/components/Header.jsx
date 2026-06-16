@@ -8,6 +8,7 @@ import { searchActions } from "../store/searchSlice";
 
 const Header = () => {
   const dispatch = useDispatch();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const bag = useSelector((store) => store.bag || []);
   const wishlist = useSelector((store) => store.wishlist || []);
@@ -76,7 +77,7 @@ const Header = () => {
           >
             <FaBagShopping size={20} />
 
-            <span className="action_name">Bag</span>
+            <span className="action_name">Cart</span>
 
             <span className="bag-item-count">
               {bag.length}
@@ -104,7 +105,7 @@ const Header = () => {
 
         <Link to="/bag" className="mobile_nav_item" onClick={closeMenu}>
           <FaBagShopping />
-          <span>Bag</span>
+          <span>Cart</span>
           <span className="bag-item-count">{bag.length}</span>
         </Link>
 
