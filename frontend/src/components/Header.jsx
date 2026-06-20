@@ -120,7 +120,7 @@ const Header = () => {
           <span>Home</span>
         </Link>
 
-        <Link to="/" className="mobile_nav_item" onClick={closeMenu}>
+        <Link to="/categories" className="mobile_nav_item" onClick={closeMenu}>
           <FaBars />
           <span>Categories</span>
         </Link>

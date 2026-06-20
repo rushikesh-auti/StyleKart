@@ -17,6 +17,7 @@ import Men from "./pages/Men.jsx";
 import Women from "./pages/Women.jsx";
 import Kids from "./pages/Kids.jsx";
 import Beauty from "./pages/Beauty.jsx";
+import Categories from "./pages/Categories.jsx";
 
 const router = createBrowserRouter([
   {
@@ -50,6 +51,10 @@ const router = createBrowserRouter([
       {
         path: "/bag",
         element: <Bag />,
+      },
+      {
+        path: "/categories",
+        element: <Categories />,
       },
     ],
   },
