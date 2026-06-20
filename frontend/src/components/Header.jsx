@@ -34,11 +34,22 @@ const Header = () => {
           </Link>
         </div>
 
-        <nav className={`nav_bar `}>
-          <Link to="/">Men</Link>
-          <Link to="/">Women</Link>
-          <Link to="/">Kids</Link>
-          <Link to="/">Beauty</Link>
+        <nav className="nav_bar">
+          <Link to="/men" onClick={closeMenu}>
+            Men
+          </Link>
+
+          <Link to="/women" onClick={closeMenu}>
+            Women
+          </Link>
+
+          <Link to="/kids" onClick={closeMenu}>
+            Kids
+          </Link>
+
+          <Link to="/beauty" onClick={closeMenu}>
+            Beauty
+          </Link>
         </nav>
 
         <div className="search_bar">
@@ -51,10 +62,14 @@ const Header = () => {
         </div>
 
         <div className="action_bar">
-          <div className="action_container">
+          <Link
+            to="/"
+            className="action_container"
+            onClick={closeMenu}
+          >
             <BsFillPersonFill size={20} />
             <span className="action_name">Profile</span>
-          </div>
+          </Link>
 
           <Link
             className="action_container"
@@ -62,12 +77,11 @@ const Header = () => {
             onClick={closeMenu}
           >
             <FaFaceGrinHearts size={20} />
-
             <span className="action_name">Wishlist</span>
 
-            <span className="bag-item-count">
-              {wishlist.length}
-            </span>
+            {wishlist.length > 0 && (
+              <span className="bag-item-count">{wishlist.length}</span>
+            )}
           </Link>
 
           <Link
@@ -76,19 +90,33 @@ const Header = () => {
             onClick={closeMenu}
           >
             <FaBagShopping size={20} />
-
             <span className="action_name">Cart</span>
 
-            <span className="bag-item-count">
-              {bag.length}
-            </span>
+            {bag.length > 0 && (
+              <span className="bag-item-count">{bag.length}</span>
+            )}
           </Link>
         </div>
       </header>
 
-      <nav className="mobile_bottom_nav" role="navigation" aria-label="Mobile">
+      <nav
+        className="mobile_bottom_nav"
+        role="navigation"
+        aria-label="Mobile Navigation"
+      >
         <Link to="/" className="mobile_nav_item" onClick={closeMenu}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5z" fill="currentColor" /></svg>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5z"
+              fill="currentColor"
+            />
+          </svg>
           <span>Home</span>
         </Link>
 
@@ -97,19 +125,29 @@ const Header = () => {
           <span>Categories</span>
         </Link>
 
-        <Link to="/wishlist" className="mobile_nav_item" onClick={closeMenu}>
+        <Link
+          to="/wishlist"
+          className="mobile_nav_item"
+          onClick={closeMenu}
+        >
           <FaFaceGrinHearts />
           <span>Wishlist</span>
-          <span className="bag-item-count">{wishlist.length}</span>
+
+          {wishlist.length > 0 && (
+            <span className="bag-item-count">{wishlist.length}</span>
+          )}
         </Link>
 
         <Link to="/bag" className="mobile_nav_item" onClick={closeMenu}>
           <FaBagShopping />
           <span>Cart</span>
-          <span className="bag-item-count">{bag.length}</span>
+
+          {bag.length > 0 && (
+            <span className="bag-item-count">{bag.length}</span>
+          )}
         </Link>
 
-        <Link to="/" className="mobile_nav_item" onClick={closeMenu}>
+        <Link to="/" className="mobile_nav_item" >
           <BsFillPersonFill />
           <span>Account</span>
         </Link>

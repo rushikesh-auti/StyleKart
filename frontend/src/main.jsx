@@ -13,6 +13,11 @@ import Home from "./routes/Home.jsx";
 import Bag from "./routes/Bag.jsx";
 import Wishlist from "./routes/Wishlist.jsx";
 
+import Men from "./pages/Men.jsx";
+import Women from "./pages/Women.jsx";
+import Kids from "./pages/Kids.jsx";
+import Beauty from "./pages/Beauty.jsx";
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -23,20 +28,34 @@ const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/bag",
-        element: <Bag />,
+        path: "/men",
+        element: <Men />,
+      },
+      {
+        path: "/women",
+        element: <Women />,
+      },
+      {
+        path: "/kids",
+        element: <Kids />,
+      },
+      {
+        path: "/beauty",
+        element: <Beauty />,
       },
       {
         path: "/wishlist",
         element: <Wishlist />,
       },
+      {
+        path: "/bag",
+        element: <Bag />,
+      },
     ],
   },
 ]);
 
-ReactDOM.createRoot(
-  document.getElementById("root")
-).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider store={myntraStore}>
       <RouterProvider router={router} />
