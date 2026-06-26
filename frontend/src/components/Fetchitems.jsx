@@ -14,21 +14,20 @@ const FetchItems = () => {
     const signal = controller.signal;
 
     dispatch(fetchStatusActions.markFetchingStarted());
-    fetch("https://stylekart-7x1q.onrender.com/items", { signal })
+
+    fetch("https://stylekart-7x1q.onrender.com/api/products", { signal })
       .then((res) => res.json())
-      .then(({ items }) => {
+      .then((data) => {
         dispatch(fetchStatusActions.markFetchDone());
         dispatch(fetchStatusActions.markFetchingFinished());
-        dispatch(itemsActions.addInitialItems(items[0]));
+
+        dispatch(itemsActions.addInitialItems(data.products));
       });
 
-    return () => {
-      controller.abort();
-    };
-  }, [fetchStatus]);
+    return () => controller.abort();
+  }, [fetchStatus, dispatch]);
 
-  return <></>;
+  return null;
 };
 
 export default FetchItems;
-
