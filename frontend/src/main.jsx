@@ -18,6 +18,7 @@ import Women from "./pages/Women.jsx";
 import Kids from "./pages/Kids.jsx";
 import Beauty from "./pages/Beauty.jsx";
 import Categories from "./pages/Categories.jsx";
+import ProductDetails from "./pages/ProductDetails.jsx";
 
 const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ const router = createBrowserRouter([
         element: <Beauty />,
       },
       {
+        path: "/product/:id",
+        element: <ProductDetails />,
+      },
+      {
         path: "/wishlist",
         element: <Wishlist />,
       },
@@ -65,5 +70,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Provider store={myntraStore}>
       <RouterProvider router={router} />
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
