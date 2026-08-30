@@ -1,4 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 import { bagActions } from "../store/bagSlice";
 import { GrAddCircle } from "react-icons/gr";
 import { AiFillDelete } from "react-icons/ai";
@@ -32,11 +33,15 @@ const HomeItem = ({ item }) => {
 
   return (
     <div className="item-container">
-      <img
-        className="item-image"
-        src={`/${item.image}`}
-        alt={item.item_name}
-      />
+
+      {/* Product Image */}
+      <Link to={`/product/${item.id}`}>
+        <img
+          className="item-image"
+          src={`/${item.image}`}
+          alt={item.item_name}
+        />
+      </Link>
 
       <div className="rating">
         {item.rating?.stars || 0} ⭐ | {item.rating?.count || 0}
@@ -46,9 +51,15 @@ const HomeItem = ({ item }) => {
         {item.company}
       </div>
 
-      <div className="item-name">
-        {item.item_name}
-      </div>
+      {/* Product Name */}
+      <Link
+        to={`/product/${item.id}`}
+        className="product-link"
+      >
+        <div className="item-name">
+          {item.item_name}
+        </div>
+      </Link>
 
       <div className="price">
         <span className="current-price">
@@ -64,6 +75,7 @@ const HomeItem = ({ item }) => {
         </span>
       </div>
 
+      {/* Cart */}
       {elementFound ? (
         <button
           type="button"
@@ -82,6 +94,7 @@ const HomeItem = ({ item }) => {
         </button>
       )}
 
+      {/* Wishlist */}
       <button
         type="button"
         className={
@@ -105,6 +118,7 @@ const HomeItem = ({ item }) => {
           </>
         )}
       </button>
+
     </div>
   );
 };
