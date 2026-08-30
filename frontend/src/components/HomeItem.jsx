@@ -8,55 +8,38 @@ import { wishlistActions } from "../store/wishlistSlice";
 const HomeItem = ({ item }) => {
   const dispatch = useDispatch();
 
-  const bagItems = useSelector(
-    (store) => store.bag 
-  );
+  const bagItems = useSelector((store) => store.bag || []);
+  const wishlistItems = useSelector((store) => store.wishlist || []);
 
-  const wishlistItems = useSelector(
-    (store) => store.wishlist 
-  );
-
-  const elementFound =
-    bagItems.indexOf(item.id) >= 0;
-
-  const wishlistFound =
-    wishlistItems.indexOf(item.id) >= 0;
+  const elementFound = bagItems.includes(item.id);
+  const wishlistFound = wishlistItems.includes(item.id);
 
   const handleAddToBag = () => {
-    dispatch(
-      bagActions.addToBag(item.id)
-    );
+    dispatch(bagActions.addToBag(item.id));
   };
 
   const handleRemove = () => {
-    dispatch(
-      bagActions.removeFromBag(item.id)
-    );
+    dispatch(bagActions.removeFromBag(item.id));
   };
 
   const handleWishlist = () => {
-    dispatch(
-      wishlistActions.addToWishlist(item.id)
-    );
+    dispatch(wishlistActions.addToWishlist(item.id));
   };
 
   const handleRemoveWishlist = () => {
-    dispatch(
-      wishlistActions.removeFromWishlist(item.id)
-    );
+    dispatch(wishlistActions.removeFromWishlist(item.id));
   };
 
   return (
     <div className="item-container">
       <img
         className="item-image"
-        src={item.image}
-        alt="item image"
+        src={`/${item.image}`}
+        alt={item.item_name}
       />
 
       <div className="rating">
-        {item.rating.stars} ⭐ |
-        {item.rating.count}
+        {item.rating?.stars || 0} ⭐ | {item.rating?.count || 0}
       </div>
 
       <div className="company-name">
@@ -69,11 +52,11 @@ const HomeItem = ({ item }) => {
 
       <div className="price">
         <span className="current-price">
-          Rs {item.current_price}
+          ₹{item.current_price}
         </span>
 
         <span className="original-price">
-          Rs {item.original_price}
+          ₹{item.original_price}
         </span>
 
         <span className="discount">
@@ -99,24 +82,29 @@ const HomeItem = ({ item }) => {
         </button>
       )}
 
-      <br />
-      <br />
-
-      {wishlistFound ? (
-        <button
-          className="btn btn-danger"
-          onClick={handleRemoveWishlist}
-        >
-          <FaHeart /> Remove Wishlist
-        </button>
-      ) : (
-        <button
-          className="btn btn-outline-danger"
-          onClick={handleWishlist}
-        >
-          <FaRegHeart /> Wishlist
-        </button>
-      )}
+      <button
+        type="button"
+        className={
+          wishlistFound
+            ? "btn btn-danger"
+            : "btn btn-outline-danger"
+        }
+        onClick={
+          wishlistFound
+            ? handleRemoveWishlist
+            : handleWishlist
+        }
+      >
+        {wishlistFound ? (
+          <>
+            <FaHeart /> Remove Wishlist
+          </>
+        ) : (
+          <>
+            <FaRegHeart /> Wishlist
+          </>
+        )}
+      </button>
     </div>
   );
 };
