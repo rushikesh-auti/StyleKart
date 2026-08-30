@@ -1,9 +1,27 @@
+import { useSelector } from "react-redux";
+import HomeItem from "../components/HomeItem";
+
 const Women = () => {
+  const items = useSelector((store) => store.items);
+
+  const womenProducts = items.filter(
+    (item) => item.category?.toLowerCase() === "women"
+  );
+
   return (
-    <div className="container py-4">
-      <h2>Women</h2>
-      <p>Women's fashion products will be displayed here.</p>
-    </div>
+    <main>
+      <h2 className="category_heading">Women's Collection</h2>
+
+      <div className="items-container">
+        {womenProducts.length === 0 ? (
+          <h2>No Products Found</h2>
+        ) : (
+          womenProducts.map((item) => (
+            <HomeItem key={item.id} item={item} />
+          ))
+        )}
+      </div>
+    </main>
   );
 };
 
