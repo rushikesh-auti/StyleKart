@@ -19,6 +19,7 @@ import Kids from "./pages/Kids.jsx";
 import Beauty from "./pages/Beauty.jsx";
 import Categories from "./pages/Categories.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import AdminProducts from "./pages/AdminProducts.jsx";
 
 const router = createBrowserRouter([
   {
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
       {
         path: "/categories",
         element: <Categories />,
+      },
+      {
+        path: "/admin/products",
+        element: <AdminProducts />,
       },
     ],
   },
