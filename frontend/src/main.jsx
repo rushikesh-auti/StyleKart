@@ -29,6 +29,7 @@ import ProductDetails from "./pages/ProductDetails.jsx";
 // Admin Pages
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
+import EditProduct from "./pages/EditProduct.jsx";
 
 const router = createBrowserRouter([
   {
@@ -92,6 +93,12 @@ const router = createBrowserRouter([
       {
         path: "/admin/products/add",
         element: <AddProduct />,
+      },
+
+      // Admin - Edit Product
+      {
+        path: "/admin/products/edit/:id",
+        element: <EditProduct />,
       },
     ],
   },
