@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const API_URL = "https://stylekart-7x1q.onrender.com/api/products";
+// const API_URL = "https://stylekart-7x1q.onrender.com/api/products";
+const API_URL = "https://stylekart-inwb.onrender.com/api/products";
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
