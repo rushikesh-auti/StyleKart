@@ -15,7 +15,8 @@ const FetchItems = () => {
 
     dispatch(fetchStatusActions.markFetchingStarted());
 
-    fetch("https://stylekart-7x1q.onrender.com/api/products", { signal })
+    // fetch("https://stylekart-7x1q.onrender.com/api/products", { signal })
+    fetch("https://stylekart-inwb.onrender.com/api/products", { signal })
       .then((res) => res.json())
       .then((data) => {
         dispatch(fetchStatusActions.markFetchDone());
