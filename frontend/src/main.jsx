@@ -5,10 +5,7 @@ import App from "./routes/App.jsx";
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import {
-  RouterProvider,
-  createBrowserRouter,
-} from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import { Provider } from "react-redux";
 import myntraStore from "./store/index.js";
@@ -30,6 +27,7 @@ import ProductDetails from "./pages/ProductDetails.jsx";
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
+import AdminLogin from "./pages/AdminLogin.jsx";
 
 const router = createBrowserRouter([
   {
@@ -85,6 +83,10 @@ const router = createBrowserRouter([
 
       // Admin - Product Management
       {
+        path: "/admin/login",
+        element: <AdminLogin />,
+      },
+      {
         path: "/admin/products",
         element: <AdminProducts />,
       },
@@ -109,5 +111,5 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <Provider store={myntraStore}>
       <RouterProvider router={router} />
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
