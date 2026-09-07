@@ -23,7 +23,7 @@ const ProductDetails = () => {
         setError("");
 
         const response = await fetch(
-          `https://stylekart-7x1q.onrender.com/api/products/${id}`
+          `https://stylekart-inwb.onrender.com/api/products/${id}`
         );
 
         if (!response.ok) {
