@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+
 import App from "./routes/App.jsx";
 
 import "./index.css";
@@ -10,102 +11,131 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import myntraStore from "./store/index.js";
 
-// Routes
+// Main Routes
 import Home from "./routes/Home.jsx";
 import Bag from "./routes/Bag.jsx";
 import Wishlist from "./routes/Wishlist.jsx";
 
-// Pages
+// Category Pages
 import Men from "./pages/Men.jsx";
 import Women from "./pages/Women.jsx";
 import Kids from "./pages/Kids.jsx";
 import Beauty from "./pages/Beauty.jsx";
 import Categories from "./pages/Categories.jsx";
+
+// Product Pages
 import ProductDetails from "./pages/ProductDetails.jsx";
 
 // Admin Pages
+import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
-import AdminLogin from "./pages/AdminLogin.jsx";
 
+// Admin Protection
+import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
+
+// Router Configuration
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
 
     children: [
-      // Home
+      // =========================
+      // HOME
+      // =========================
       {
-        path: "/",
+        index: true,
         element: <Home />,
       },
 
-      // Categories
+      // =========================
+      // CATEGORY PAGES
+      // =========================
       {
-        path: "/men",
+        path: "men",
         element: <Men />,
       },
       {
-        path: "/women",
+        path: "women",
         element: <Women />,
       },
       {
-        path: "/kids",
+        path: "kids",
         element: <Kids />,
       },
       {
-        path: "/beauty",
+        path: "beauty",
         element: <Beauty />,
       },
       {
-        path: "/categories",
+        path: "categories",
         element: <Categories />,
       },
 
-      // Product
+      // =========================
+      // PRODUCT DETAILS
+      // =========================
       {
-        path: "/product/:id",
+        path: "product/:id",
         element: <ProductDetails />,
       },
 
-      // Wishlist
+      // =========================
+      // WISHLIST
+      // =========================
       {
-        path: "/wishlist",
+        path: "wishlist",
         element: <Wishlist />,
       },
 
-      // Bag
+      // =========================
+      // SHOPPING BAG
+      // =========================
       {
-        path: "/bag",
+        path: "bag",
         element: <Bag />,
       },
 
-      // Admin - Product Management
+      // =========================
+      // ADMIN LOGIN
+      // =========================
       {
-        path: "/admin/login",
+        path: "admin/login",
         element: <AdminLogin />,
       },
-      {
-        path: "/admin/products",
-        element: <AdminProducts />,
-      },
 
-      // Admin - Add Product
+      // =========================
+      // PROTECTED ADMIN ROUTES
+      // =========================
       {
-        path: "/admin/products/add",
-        element: <AddProduct />,
-      },
+        element: <AdminProtectedRoute />,
+        children: [
+          // Admin Product Management
+          {
+            path: "admin/products",
+            element: <AdminProducts />,
+          },
 
-      // Admin - Edit Product
-      {
-        path: "/admin/products/edit/:id",
-        element: <EditProduct />,
+          // Add Product
+          {
+            path: "admin/products/add",
+            element: <AddProduct />,
+          },
+
+          // Edit Product
+          {
+            path: "admin/products/edit/:id",
+            element: <EditProduct />,
+          },
+        ],
       },
     ],
   },
 ]);
 
+// React Application
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider store={myntraStore}>
