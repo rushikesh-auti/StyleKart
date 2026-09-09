@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
+import { adminApiUrl } from "../utils/adminApi";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -22,9 +23,7 @@ const ProductDetails = () => {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `https://stylekart-inwb.onrender.com/api/products/${id}`
-        );
+        const response = await fetch(adminApiUrl(`/products/${id}`));
 
         if (!response.ok) {
           throw new Error("Product not found");
@@ -89,7 +88,6 @@ const ProductDetails = () => {
   return (
     <main className="product-details-page">
       <div className="product-details-container">
-
         <div className="product-details-image-section">
           <img
             src={`/${product.image}`}
@@ -99,26 +97,18 @@ const ProductDetails = () => {
         </div>
 
         <div className="product-details-info">
+          <h1 className="product-details-company">{product.company}</h1>
 
-          <h1 className="product-details-company">
-            {product.company}
-          </h1>
-
-          <p className="product-details-name">
-            {product.item_name}
-          </p>
+          <p className="product-details-name">{product.item_name}</p>
 
           <div className="product-details-rating">
             {product.rating?.stars || 0} ⭐
-            <span>
-              | {product.rating?.count || 0} Ratings
-            </span>
+            <span>| {product.rating?.count || 0} Ratings</span>
           </div>
 
           <hr />
 
           <div className="product-details-price">
-
             <span className="details-current-price">
               ₹{product.current_price}
             </span>
@@ -130,12 +120,9 @@ const ProductDetails = () => {
             <span className="details-discount">
               {product.discount_percentage}% OFF
             </span>
-
           </div>
 
-          <p className="tax-info">
-            inclusive of all taxes
-          </p>
+          <p className="tax-info">inclusive of all taxes</p>
 
           {product.sizes?.length > 0 && (
             <div className="product-option">
@@ -143,11 +130,7 @@ const ProductDetails = () => {
 
               <div className="size-options">
                 {product.sizes.map((size) => (
-                  <button
-                    type="button"
-                    key={size}
-                    className="size-button"
-                  >
+                  <button type="button" key={size} className="size-button">
                     {size}
                   </button>
                 ))}
@@ -161,10 +144,7 @@ const ProductDetails = () => {
 
               <div className="color-options">
                 {product.colors.map((color) => (
-                  <span
-                    className="color-option"
-                    key={color}
-                  >
+                  <span className="color-option" key={color}>
                     {color}
                   </span>
                 ))}
@@ -173,7 +153,6 @@ const ProductDetails = () => {
           )}
 
           <div className="product-details-actions">
-
             {isInBag ? (
               <button
                 type="button"
@@ -209,11 +188,9 @@ const ProductDetails = () => {
                 ♡ Wishlist
               </button>
             )}
-
           </div>
 
           <div className="product-information">
-
             <h3>Product Details</h3>
 
             <p>
@@ -243,11 +220,8 @@ const ProductDetails = () => {
                 <strong>Delivery:</strong> {product.delivery_date}
               </p>
             )}
-
           </div>
-
         </div>
-
       </div>
     </main>
   );
