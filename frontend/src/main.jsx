@@ -25,15 +25,19 @@ import Categories from "./pages/Categories.jsx";
 
 // Product Pages
 import ProductDetails from "./pages/ProductDetails.jsx";
+import Profile from "./pages/Profile.jsx";
+import Orders from "./pages/Orders.jsx";
 
 // Admin Pages
 import AdminLogin from "./pages/AdminLogin.jsx";
+import UserLogin from "./pages/UserLogin.jsx";
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
 
 // Admin Protection
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 // Router Configuration
 const router = createBrowserRouter([
@@ -105,6 +109,17 @@ const router = createBrowserRouter([
         path: "admin/login",
         element: <AdminLogin />,
       },
+      {
+        path: "login",
+        element: <UserLogin />,
+      },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: "profile", element: <Profile /> },
+          { path: "orders", element: <Orders /> },
+        ],
+      },
 
       // =========================
       // PROTECTED ADMIN ROUTES
@@ -112,6 +127,11 @@ const router = createBrowserRouter([
       {
         element: <AdminProtectedRoute />,
         children: [
+          {
+            path: "admin",
+            element: <AdminProducts />,
+          },
+
           // Admin Product Management
           {
             path: "admin/products",

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { itemsActions } from "../store/itemsSlice";
 import { fetchStatusActions } from "../store/fetchStatusSlice";
+import { adminApiUrl } from "../utils/adminApi";
 
 const FetchItems = () => {
   const fetchStatus = useSelector((store) => store.fetchStatus);
@@ -10,23 +11,27 @@ const FetchItems = () => {
   useEffect(() => {
     if (fetchStatus.fetchDone) return;
 
-    const controller = new AbortController();
-    const signal = controller.signal;
-
     dispatch(fetchStatusActions.markFetchingStarted());
 
-    // fetch("https://stylekart-7x1q.onrender.com/api/products", { signal })
-    fetch("https://stylekart-inwb.onrender.com/api/products", { signal })
-      .then((res) => res.json())
+    fetch(adminApiUrl("/products"))
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Unable to load products");
+        }
+        return res.json();
+      })
       .then((data) => {
         dispatch(fetchStatusActions.markFetchDone());
+        dispatch(itemsActions.addInitialItems(data.products || []));
+      })
+      .catch((error) => {
+        console.error("Product fetch failed:", error.message);
+        dispatch(fetchStatusActions.markFetchDone());
+      })
+      .finally(() => {
         dispatch(fetchStatusActions.markFetchingFinished());
-
-        dispatch(itemsActions.addInitialItems(data.products));
       });
-
-    return () => controller.abort();
-  }, [fetchStatus, dispatch]);
+  }, [fetchStatus.fetchDone, dispatch]);
 
   return null;
 };
