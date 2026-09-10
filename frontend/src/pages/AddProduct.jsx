@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { adminFetch } from "../utils/adminApi";
 
-const API_URL = "https://stylekart-7x1q.onrender.com/api/products";
+const API_PATH = "/products";
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -66,7 +67,7 @@ const AddProduct = () => {
         },
       };
 
-      const response = await fetch(API_URL, {
+      const response = await adminFetch(API_PATH, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,10 +99,8 @@ const AddProduct = () => {
     <div className="container mt-5 mb-5">
       <div className="row justify-content-center">
         <div className="col-lg-10">
-
           <div className="card shadow-sm">
             <div className="card-body p-4">
-
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0">Add New Product</h2>
 
@@ -115,27 +114,16 @@ const AddProduct = () => {
               </div>
 
               {/* Success Message */}
-              {message && (
-                <div className="alert alert-success">
-                  {message}
-                </div>
-              )}
+              {message && <div className="alert alert-success">{message}</div>}
 
               {/* Error Message */}
-              {error && (
-                <div className="alert alert-danger">
-                  {error}
-                </div>
-              )}
+              {error && <div className="alert alert-danger">{error}</div>}
 
               <form onSubmit={handleSubmit}>
-
                 {/* Product ID */}
                 <div className="row">
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Product ID
-                    </label>
+                    <label className="form-label">Product ID</label>
 
                     <input
                       type="text"
@@ -150,9 +138,7 @@ const AddProduct = () => {
 
                   {/* Category */}
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Category
-                    </label>
+                    <label className="form-label">Category</label>
 
                     <select
                       name="category"
@@ -172,9 +158,7 @@ const AddProduct = () => {
                 {/* Company + Product Name */}
                 <div className="row">
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Company
-                    </label>
+                    <label className="form-label">Company</label>
 
                     <input
                       type="text"
@@ -188,9 +172,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Product Name
-                    </label>
+                    <label className="form-label">Product Name</label>
 
                     <input
                       type="text"
@@ -206,9 +188,7 @@ const AddProduct = () => {
 
                 {/* Description */}
                 <div className="mb-3">
-                  <label className="form-label">
-                    Description
-                  </label>
+                  <label className="form-label">Description</label>
 
                   <textarea
                     name="description"
@@ -223,9 +203,7 @@ const AddProduct = () => {
 
                 {/* Image */}
                 <div className="mb-3">
-                  <label className="form-label">
-                    Image Path
-                  </label>
+                  <label className="form-label">Image Path</label>
 
                   <input
                     type="text"
@@ -237,17 +215,13 @@ const AddProduct = () => {
                     required
                   />
 
-                  <small className="text-muted">
-                    Example: images/men6.jpg
-                  </small>
+                  <small className="text-muted">Example: images/men6.jpg</small>
                 </div>
 
                 {/* Price */}
                 <div className="row">
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">
-                      Original Price
-                    </label>
+                    <label className="form-label">Original Price</label>
 
                     <input
                       type="number"
@@ -262,9 +236,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">
-                      Current Price
-                    </label>
+                    <label className="form-label">Current Price</label>
 
                     <input
                       type="number"
@@ -279,9 +251,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">
-                      Discount %
-                    </label>
+                    <label className="form-label">Discount %</label>
 
                     <input
                       type="number"
@@ -300,9 +270,7 @@ const AddProduct = () => {
                 {/* Return + Delivery + Stock */}
                 <div className="row">
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">
-                      Return Period
-                    </label>
+                    <label className="form-label">Return Period</label>
 
                     <input
                       type="number"
@@ -317,9 +285,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">
-                      Delivery Date
-                    </label>
+                    <label className="form-label">Delivery Date</label>
 
                     <input
                       type="text"
@@ -333,9 +299,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">
-                      Stock
-                    </label>
+                    <label className="form-label">Stock</label>
 
                     <input
                       type="number"
@@ -353,9 +317,7 @@ const AddProduct = () => {
                 {/* Rating */}
                 <div className="row">
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Rating Stars
-                    </label>
+                    <label className="form-label">Rating Stars</label>
 
                     <input
                       type="number"
@@ -372,9 +334,7 @@ const AddProduct = () => {
                   </div>
 
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">
-                      Rating Count
-                    </label>
+                    <label className="form-label">Rating Count</label>
 
                     <input
                       type="number"
@@ -408,11 +368,9 @@ const AddProduct = () => {
                     Cancel
                   </button>
                 </div>
-
               </form>
             </div>
           </div>
-
         </div>
       </div>
     </div>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { adminFetch } from "../utils/adminApi";
 
-const API_URL = "https://stylekart-7x1q.onrender.com/api/products";
+const API_PATH = "/products";
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -34,7 +35,7 @@ const EditProduct = () => {
       try {
         setLoading(true);
 
-        const response = await fetch(`${API_URL}/${id}`);
+        const response = await adminFetch(`${API_PATH}/${id}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -106,7 +107,7 @@ const EditProduct = () => {
         },
       };
 
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await adminFetch(`${API_PATH}/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -151,9 +152,7 @@ const EditProduct = () => {
       {message && (
         <div
           className={`alert ${
-            message.includes("successfully")
-              ? "alert-success"
-              : "alert-danger"
+            message.includes("successfully") ? "alert-success" : "alert-danger"
           }`}
         >
           {message}
@@ -366,11 +365,7 @@ const EditProduct = () => {
         </div>
 
         {/* Buttons */}
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={saving}
-        >
+        <button type="submit" className="btn btn-primary" disabled={saving}>
           {saving ? "Updating Product..." : "Update Product"}
         </button>
 

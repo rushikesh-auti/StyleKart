@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { clearAdminSession } from "../store/adminAuthSlice";
+import { adminFetch } from "../utils/adminApi";
 
-// const API_URL = "https://stylekart-7x1q.onrender.com/api/products";
-const API_URL = "https://stylekart-inwb.onrender.com/api/products";
+const API_PATH = "/products";
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // Fetch all products
   const fetchProducts = async () => {
@@ -16,13 +20,11 @@ const AdminProducts = () => {
       setLoading(true);
       setError("");
 
-      const response = await fetch(API_URL);
+      const response = await adminFetch(API_PATH);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to fetch products"
-        );
+        throw new Error(data.message || "Failed to fetch products");
       }
 
       setProducts(data.products || []);
@@ -40,7 +42,7 @@ const AdminProducts = () => {
   // Delete product
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this product?"
+      "Are you sure you want to delete this product?",
     );
 
     if (!confirmed) return;
@@ -49,29 +51,30 @@ const AdminProducts = () => {
       setError("");
       setMessage("");
 
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await adminFetch(`${API_PATH}/${id}`, {
         method: "DELETE",
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to delete product"
-        );
+        throw new Error(data.message || "Failed to delete product");
       }
 
       // Remove deleted product from UI
       setProducts((prevProducts) =>
-        prevProducts.filter(
-          (product) => product.id !== id
-        )
+        prevProducts.filter((product) => product.id !== id),
       );
 
       setMessage("Product deleted successfully.");
     } catch (error) {
       setError(error.message);
     }
+  };
+
+  const handleLogout = () => {
+    dispatch(clearAdminSession());
+    navigate("/admin/login", { replace: true });
   };
 
   if (loading) {
@@ -84,48 +87,39 @@ const AdminProducts = () => {
 
   return (
     <div className="container-fluid mt-5 mb-5 px-4">
-
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold mb-1">
-            Admin Product Management
-          </h2>
+          <h2 className="fw-bold mb-1">Admin Product Management</h2>
 
-          <p className="text-muted mb-0">
-            Manage StyleKart products
-          </p>
+          <p className="text-muted mb-0">Manage StyleKart products</p>
         </div>
 
-        <Link
-          to="/admin/products/add"
-          className="btn btn-primary"
-        >
-          + Add Product
-        </Link>
+        <div className="d-flex gap-2">
+          <Link to="/admin/products/add" className="btn btn-primary">
+            + Add Product
+          </Link>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Success Message */}
-      {message && (
-        <div className="alert alert-success">
-          {message}
-        </div>
-      )}
+      {message && <div className="alert alert-success">{message}</div>}
 
       {/* Error Message */}
-      {error && (
-        <div className="alert alert-danger">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-danger">{error}</div>}
 
       {/* Products Table */}
       <div className="card shadow-sm">
         <div className="card-body p-0">
-
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
-
               <thead className="table-dark">
                 <tr>
                   <th>Image</th>
@@ -141,17 +135,13 @@ const AdminProducts = () => {
               <tbody>
                 {products.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan="7"
-                      className="text-center py-5"
-                    >
+                    <td colSpan="7" className="text-center py-5">
                       No products found.
                     </td>
                   </tr>
                 ) : (
                   products.map((product) => (
                     <tr key={product.id}>
-
                       {/* Image */}
                       <td>
                         <img
@@ -173,9 +163,7 @@ const AdminProducts = () => {
 
                       {/* Product */}
                       <td>
-                        <strong>
-                          {product.company}
-                        </strong>
+                        <strong>{product.company}</strong>
 
                         <br />
 
@@ -193,9 +181,7 @@ const AdminProducts = () => {
 
                       {/* Price */}
                       <td>
-                        <strong>
-                          ₹{product.current_price}
-                        </strong>
+                        <strong>₹{product.current_price}</strong>
 
                         <br />
 
@@ -225,7 +211,6 @@ const AdminProducts = () => {
                       {/* Actions */}
                       <td>
                         <div className="d-flex gap-2">
-
                           <Link
                             to={`/admin/products/edit/${product.id}`}
                             className="btn btn-sm btn-warning"
@@ -236,33 +221,25 @@ const AdminProducts = () => {
                           <button
                             type="button"
                             className="btn btn-sm btn-danger"
-                            onClick={() =>
-                              handleDelete(product.id)
-                            }
+                            onClick={() => handleDelete(product.id)}
                           >
                             Delete
                           </button>
-
                         </div>
                       </td>
-
                     </tr>
                   ))
                 )}
               </tbody>
-
             </table>
           </div>
-
         </div>
       </div>
 
       {/* Product Count */}
       <div className="mt-3 text-muted">
-        Total Products:{" "}
-        <strong>{products.length}</strong>
+        Total Products: <strong>{products.length}</strong>
       </div>
-
     </div>
   );
 };
