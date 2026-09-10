@@ -7,6 +7,7 @@ import { FaFaceGrinHearts, FaBagShopping } from "react-icons/fa6";
 import { FaBars } from "react-icons/fa";
 import { searchActions } from "../store/searchSlice";
 import { clearUserSession } from "../store/userAuthSlice";
+import { clearAdminSession } from "../store/adminAuthSlice";
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -28,7 +29,11 @@ const Header = () => {
   };
 
   const handleUserLogout = () => {
-    dispatch(clearUserSession());
+    if (isAdminAuthenticated) {
+      dispatch(clearAdminSession());
+    } else {
+      dispatch(clearUserSession());
+    }
     closeMenu();
     navigate("/", { replace: true });
   };
