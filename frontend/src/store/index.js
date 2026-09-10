@@ -5,6 +5,8 @@ import itemsSlice from "./itemsSlice";
 import fetchStatusSlice from "./fetchStatusSlice";
 import wishlistReducer from "./wishlistSlice";
 import searchReducer from "./searchSlice";
+import adminAuthReducer from "./adminAuthSlice";
+import userAuthReducer from "./userAuthSlice";
 
 const myntraStore = configureStore({
   reducer: {
@@ -14,6 +16,8 @@ const myntraStore = configureStore({
       fetchStatusSlice.reducer,
     wishlist: wishlistReducer,
     search: searchReducer,
+    adminAuth: adminAuthReducer,
+    userAuth: userAuthReducer,
   },
 });
 

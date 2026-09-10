@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setAdminSession } from "../store/adminAuthSlice";
+import { adminApiUrl } from "../utils/adminApi";
 
-const API_URL = "https://stylekart-inwb.onrender.com/api/auth/login";
+const API_URL = adminApiUrl("/auth/admin/login");
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -54,13 +58,7 @@ const AdminLogin = () => {
         throw new Error("Authentication token was not received");
       }
 
-      // Store JWT token
-      localStorage.setItem("adminToken", data.token);
-
-      // Store admin information
-      if (data.admin) {
-        localStorage.setItem("admin", JSON.stringify(data.admin));
-      }
+      dispatch(setAdminSession({ token: data.token, admin: data.admin }));
 
       // Redirect to admin products
       navigate("/admin/products", {
