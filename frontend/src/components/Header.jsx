@@ -1,24 +1,36 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { BsFillPersonFill } from "react-icons/bs";
+import { BsShieldLockFill } from "react-icons/bs";
+import { FaChevronDown } from "react-icons/fa6";
 import { FaFaceGrinHearts, FaBagShopping } from "react-icons/fa6";
 import { FaBars } from "react-icons/fa";
 import { searchActions } from "../store/searchSlice";
+import { clearUserSession } from "../store/userAuthSlice";
 
 const Header = () => {
   const dispatch = useDispatch();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const bag = useSelector((store) => store.bag || []);
   const wishlist = useSelector((store) => store.wishlist || []);
+  const isAdminAuthenticated = useSelector(
+    (store) => store.adminAuth?.isAuthenticated,
+  );
+  const user = useSelector((store) => store.userAuth?.user);
 
   const handleSearch = (event) => {
     dispatch(searchActions.setSearchText(event.target.value));
   };
 
   const closeMenu = () => {
-    setMenuOpen(false);
+    return undefined;
+  };
+
+  const handleUserLogout = () => {
+    dispatch(clearUserSession());
+    closeMenu();
+    navigate("/", { replace: true });
   };
 
   return (
@@ -62,17 +74,74 @@ const Header = () => {
         </div>
 
         <div className="action_bar">
-          <Link
-            to="/"
-            className="action_container"
-            onClick={closeMenu}
-          >
-            <BsFillPersonFill size={20} />
-            <span className="action_name">Profile</span>
-          </Link>
+          {isAdminAuthenticated ? (
+            <>
+              <Link
+                to="/admin"
+                className="action_container"
+                onClick={closeMenu}
+              >
+                <BsShieldLockFill size={20} />
+                <span className="action_name">Admin Dashboard</span>
+              </Link>
+              <button
+                type="button"
+                className="action_container action_button"
+                onClick={handleUserLogout}
+                title="Log out"
+              >
+                <span className="action_name">Logout</span>
+              </button>
+            </>
+          ) : user ? (
+            <>
+              <Link
+                to="/profile"
+                className="action_container"
+                onClick={closeMenu}
+              >
+                <BsFillPersonFill size={20} />
+                <span className="action_name">{user.name || "Profile"}</span>
+              </Link>
+              <Link
+                to="/orders"
+                className="action_container"
+                onClick={closeMenu}
+              >
+                <span className="action_name">Orders</span>
+              </Link>
+              <button
+                type="button"
+                className="action_container action_button"
+                onClick={handleUserLogout}
+                title="Log out"
+              >
+                <span className="action_name">Logout</span>
+              </button>
+            </>
+          ) : (
+            <details className="auth_menu">
+              <summary className="action_container auth_trigger">
+                <BsFillPersonFill size={20} />
+                <span className="action_name">Login</span>
+                <FaChevronDown className="auth_chevron" size={10} />
+              </summary>
+              <div className="auth_dropdown">
+                <div className="auth_dropdown_title">Sign in to StyleKart</div>
+                <Link to="/login" onClick={closeMenu}>
+                  <BsFillPersonFill size={17} />
+                  User Login
+                </Link>
+                <Link to="/admin/login" onClick={closeMenu}>
+                  <BsShieldLockFill size={17} />
+                  Admin Login
+                </Link>
+              </div>
+            </details>
+          )}
 
           <Link
-            className="action_container"
+            className="action_container desktop_action"
             to="/wishlist"
             onClick={closeMenu}
           >
@@ -85,7 +154,7 @@ const Header = () => {
           </Link>
 
           <Link
-            className="action_container"
+            className="action_container desktop_action"
             to="/bag"
             onClick={closeMenu}
           >
@@ -125,11 +194,7 @@ const Header = () => {
           <span>Categories</span>
         </Link>
 
-        <Link
-          to="/wishlist"
-          className="mobile_nav_item"
-          onClick={closeMenu}
-        >
+        <Link to="/wishlist" className="mobile_nav_item" onClick={closeMenu}>
           <FaFaceGrinHearts />
           <span>Wishlist</span>
 
@@ -147,9 +212,14 @@ const Header = () => {
           )}
         </Link>
 
-        <Link to="/" className="mobile_nav_item" >
-          <BsFillPersonFill />
-          <span>Account</span>
+        <Link
+          to={isAdminAuthenticated ? "/admin" : user ? "/profile" : "/login"}
+          className="mobile_nav_item"
+        >
+          {isAdminAuthenticated ? <BsShieldLockFill /> : <BsFillPersonFill />}
+          <span>
+            {isAdminAuthenticated ? "Admin" : user ? "Account" : "Login"}
+          </span>
         </Link>
       </nav>
     </>

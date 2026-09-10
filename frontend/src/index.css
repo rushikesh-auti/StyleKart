@@ -900,3 +900,194 @@ header {
   }
 
 }
+
+/* Header and authentication menu */
+.action_button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.auth_menu {
+  position: relative;
+}
+
+.auth_trigger {
+  cursor: pointer;
+  list-style: none;
+}
+
+.auth_trigger::-webkit-details-marker {
+  display: none;
+}
+
+.auth_chevron {
+  margin-top: 3px;
+  transition: transform 0.2s ease;
+}
+
+.auth_menu[open] .auth_chevron {
+  transform: rotate(180deg);
+}
+
+.auth_dropdown {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: -12px;
+  width: 220px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #eaeaec;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(40, 44, 63, 0.15);
+  z-index: 300;
+}
+
+.auth_dropdown::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  right: 28px;
+  width: 11px;
+  height: 11px;
+  background: #fff;
+  border-left: 1px solid #eaeaec;
+  border-top: 1px solid #eaeaec;
+  transform: rotate(45deg);
+}
+
+.auth_dropdown_title {
+  padding: 6px 10px 10px;
+  color: #686b78;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.auth_dropdown a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px;
+  border-radius: 7px;
+  color: #282c3f;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth_dropdown a:hover {
+  background: #fff1f4;
+  color: #ff3f6c;
+}
+
+@media (min-width: 769px) {
+  header {
+    gap: 24px;
+    padding-left: 5%;
+    padding-right: 5%;
+  }
+
+  .logo_container {
+    flex: 0 0 auto;
+  }
+
+  .nav_bar {
+    flex: 0 0 auto;
+  }
+
+  .search_bar {
+    flex: 1 1 280px;
+    width: auto;
+    max-width: 420px;
+    margin-left: auto;
+  }
+
+  .action_bar {
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .action_container {
+    min-width: 48px;
+    font-size: 12px;
+  }
+
+  .action_container:hover {
+    color: #ff3f6c;
+  }
+}
+
+@media (max-width: 768px) {
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px 12px;
+    padding: 10px 14px 12px;
+  }
+
+  .logo_container {
+    width: auto;
+  }
+
+  .stylekart_home {
+    height: 38px;
+  }
+
+  .nav_bar {
+    grid-column: 1 / -1;
+    display: flex !important;
+    width: 100%;
+    margin-top: 0;
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .nav_bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav_bar a {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 12px;
+    background: #f7f7f8;
+  }
+
+  .search_bar {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .action_bar {
+    width: auto;
+    gap: 0;
+    margin: 0;
+    justify-content: flex-end;
+    visibility: visible;
+  }
+
+  .desktop_action {
+    display: none;
+  }
+
+  .action_bar > .auth_menu {
+    display: block;
+  }
+
+  .auth_dropdown {
+    top: calc(100% + 10px);
+    right: 0;
+  }
+
+  .mobile_bottom_nav {
+    height: 64px;
+  }
+}
