@@ -1,152 +1,136 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import App from "./routes/App.jsx";
+import {
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
+
+import { Provider } from "react-redux";
+
+import myntraStore from "./store/index.js";
 
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import App from "./routes/App.jsx";
 
-import { Provider } from "react-redux";
-import myntraStore from "./store/index.js";
-
-// Main Routes
 import Home from "./routes/Home.jsx";
 import Bag from "./routes/Bag.jsx";
 import Wishlist from "./routes/Wishlist.jsx";
 
-// Category Pages
 import Men from "./pages/Men.jsx";
 import Women from "./pages/Women.jsx";
 import Kids from "./pages/Kids.jsx";
 import Beauty from "./pages/Beauty.jsx";
 import Categories from "./pages/Categories.jsx";
 
-// Product Pages
 import ProductDetails from "./pages/ProductDetails.jsx";
+
+import UserLogin from "./pages/UserLogin.jsx";
 import Profile from "./pages/Profile.jsx";
 import Orders from "./pages/Orders.jsx";
 
-// Admin Pages
 import AdminLogin from "./pages/AdminLogin.jsx";
-import UserLogin from "./pages/UserLogin.jsx";
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
 
-// Admin Protection
-import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
 
-// Router Configuration
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
 
     children: [
-      // =========================
-      // HOME
-      // =========================
       {
         index: true,
         element: <Home />,
       },
 
-      // =========================
-      // CATEGORY PAGES
-      // =========================
       {
-        path: "men",
+        path: "/men",
         element: <Men />,
       },
+
       {
-        path: "women",
+        path: "/women",
         element: <Women />,
       },
+
       {
-        path: "kids",
+        path: "/kids",
         element: <Kids />,
       },
+
       {
-        path: "beauty",
+        path: "/beauty",
         element: <Beauty />,
       },
+
       {
-        path: "categories",
+        path: "/categories",
         element: <Categories />,
       },
 
-      // =========================
-      // PRODUCT DETAILS
-      // =========================
       {
-        path: "product/:id",
+        path: "/product/:id",
         element: <ProductDetails />,
       },
 
-      // =========================
-      // WISHLIST
-      // =========================
       {
-        path: "wishlist",
+        path: "/wishlist",
         element: <Wishlist />,
       },
 
-      // =========================
-      // SHOPPING BAG
-      // =========================
       {
-        path: "bag",
+        path: "/bag",
         element: <Bag />,
       },
 
-      // =========================
-      // ADMIN LOGIN
-      // =========================
+      // User authentication
       {
-        path: "admin/login",
-        element: <AdminLogin />,
-      },
-      {
-        path: "login",
+        path: "/login",
         element: <UserLogin />,
       },
+
+      // Protected user routes
       {
         element: <ProtectedRoute />,
         children: [
-          { path: "profile", element: <Profile /> },
-          { path: "orders", element: <Orders /> },
+          {
+            path: "/profile",
+            element: <Profile />,
+          },
+          {
+            path: "/orders",
+            element: <Orders />,
+          },
         ],
       },
 
-      // =========================
-      // PROTECTED ADMIN ROUTES
-      // =========================
+      // Admin login
+      {
+        path: "/admin/login",
+        element: <AdminLogin />,
+      },
+
+      // Protected admin routes
       {
         element: <AdminProtectedRoute />,
         children: [
           {
-            path: "admin",
+            path: "/admin/products",
             element: <AdminProducts />,
           },
-
-          // Admin Product Management
           {
-            path: "admin/products",
-            element: <AdminProducts />,
-          },
-
-          // Add Product
-          {
-            path: "admin/products/add",
+            path: "/admin/products/add",
             element: <AddProduct />,
           },
-
-          // Edit Product
           {
-            path: "admin/products/edit/:id",
+            path: "/admin/products/edit/:id",
             element: <EditProduct />,
           },
         ],
@@ -155,11 +139,10 @@ const router = createBrowserRouter([
   },
 ]);
 
-// React Application
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider store={myntraStore}>
       <RouterProvider router={router} />
     </Provider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );
