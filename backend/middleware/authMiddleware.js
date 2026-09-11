@@ -13,7 +13,7 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.slice("Bearer ".length).trim();
+    const token = authHeader.slice(7).trim();
 
     if (!token) {
       return res.status(401).json({
@@ -23,13 +23,22 @@ const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     const Account = decoded.role === "admin" ? Admin : User;
+
     const account = await Account.findById(decoded.id).select("-password");
 
-    if (!account || account.role !== decoded.role) {
+    if (!account) {
       return res.status(401).json({
         success: false,
-        message: "Authenticated account is no longer available.",
+        message: "Account no longer exists.",
+      });
+    }
+
+    if (account.role !== decoded.role) {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid account role.",
       });
     }
 
@@ -39,6 +48,7 @@ const authenticate = async (req, res, next) => {
       email: account.email,
       role: account.role,
     };
+
     next();
   } catch (error) {
     if (
@@ -53,6 +63,7 @@ const authenticate = async (req, res, next) => {
     }
 
     console.error("Authentication error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Authentication service is unavailable.",
@@ -72,9 +83,34 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
-const protect = (req, res, next) =>
-  authenticate(req, res, () => adminOnly(req, res, next));
+const userOnly = (req, res, next) => {
+  if (req.user?.role !== "user") {
+    return res.status(403).json({
+      success: false,
+      message: "User access is required.",
+    });
+  }
 
-module.exports = protect;
-module.exports.authenticate = authenticate;
-module.exports.adminOnly = adminOnly;
+  req.customer = req.user;
+  next();
+};
+
+const protect = async (req, res, next) => {
+  await authenticate(req, res, () => {
+    adminOnly(req, res, next);
+  });
+};
+
+const userProtect = async (req, res, next) => {
+  await authenticate(req, res, () => {
+    userOnly(req, res, next);
+  });
+};
+
+module.exports = {
+  authenticate,
+  adminOnly,
+  userOnly,
+  protect,
+  userProtect,
+};
