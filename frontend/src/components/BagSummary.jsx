@@ -18,7 +18,7 @@ const BagSummary = () => {
     totalDiscount += bagItem.original_price - bagItem.current_price;
   });
 
-  let finalPayment = totalMRP - totalDiscount + CONVENIENCE_FEES;
+  const finalPayment = totalMRP - totalDiscount + CONVENIENCE_FEES;
 
   return (
     <div className="bag-summary">
@@ -52,4 +52,3 @@ const BagSummary = () => {
 };
 
 export default BagSummary;
-
