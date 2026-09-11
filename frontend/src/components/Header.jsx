@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { BsFillPersonFill } from "react-icons/bs";
 import { BsShieldLockFill } from "react-icons/bs";
@@ -11,10 +11,12 @@ import { clearAdminSession } from "../store/adminAuthSlice";
 
 const Header = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const bag = useSelector((store) => store.bag || []);
   const wishlist = useSelector((store) => store.wishlist || []);
+  const isUserAuthenticated = useSelector(
+    (store) => store.userAuth?.isAuthenticated,
+  );
   const isAdminAuthenticated = useSelector(
     (store) => store.adminAuth?.isAuthenticated,
   );
@@ -29,13 +31,14 @@ const Header = () => {
   };
 
   const handleUserLogout = () => {
-    if (isAdminAuthenticated) {
-      dispatch(clearAdminSession());
-    } else {
-      dispatch(clearUserSession());
-    }
+    dispatch(clearUserSession());
     closeMenu();
-    navigate("/", { replace: true });
+  };
+
+  const handleAdminLogout = () => {
+    dispatch(clearAdminSession());
+    closeMenu();
+    window.location.assign("/admin/login");
   };
 
   return (
@@ -82,7 +85,7 @@ const Header = () => {
           {isAdminAuthenticated ? (
             <>
               <Link
-                to="/admin"
+                to="/admin/products"
                 className="action_container"
                 onClick={closeMenu}
               >
@@ -91,14 +94,14 @@ const Header = () => {
               </Link>
               <button
                 type="button"
-                className="action_container action_button"
-                onClick={handleUserLogout}
+                className="btn btn-outline-danger"
+                onClick={handleAdminLogout}
                 title="Log out"
               >
-                <span className="action_name">Logout</span>
+                Admin Logout
               </button>
             </>
-          ) : user ? (
+          ) : isUserAuthenticated ? (
             <>
               <Link
                 to="/profile"
@@ -117,11 +120,11 @@ const Header = () => {
               </Link>
               <button
                 type="button"
-                className="action_container action_button"
+                className="btn btn-outline-danger"
                 onClick={handleUserLogout}
                 title="Log out"
               >
-                <span className="action_name">Logout</span>
+                Logout
               </button>
             </>
           ) : (
@@ -220,6 +223,7 @@ const Header = () => {
         <Link
           to={isAdminAuthenticated ? "/admin" : user ? "/profile" : "/login"}
           className="mobile_nav_item"
+          onClick={closeMenu}
         >
           {isAdminAuthenticated ? <BsShieldLockFill /> : <BsFillPersonFill />}
           <span>
