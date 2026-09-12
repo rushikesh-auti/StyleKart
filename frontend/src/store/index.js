@@ -1,24 +1,23 @@
 import { configureStore } from "@reduxjs/toolkit";
 
-import bagReducer from "./bagSlice";
 import itemsReducer from "./itemsSlice";
-import fetchStatusReducer from "./fetchStatusSlice";
+import bagReducer from "./bagSlice";
 import wishlistReducer from "./wishlistSlice";
 import searchReducer from "./searchSlice";
+import fetchStatusReducer from "./fetchStatusSlice";
 import userAuthReducer from "./userAuthSlice";
 import adminAuthReducer from "./adminAuthSlice";
 
-const myntraStore = configureStore({
+const styleKartStore = configureStore({
   reducer: {
-    bag: bagReducer,
     items: itemsReducer,
-    fetchStatus: fetchStatusReducer,
+    bag: bagReducer,
     wishlist: wishlistReducer,
     search: searchReducer,
-
+    fetchStatus: fetchStatusReducer,
     userAuth: userAuthReducer,
     adminAuth: adminAuthReducer,
   },
 });
 
-export default myntraStore;
+export default styleKartStore;

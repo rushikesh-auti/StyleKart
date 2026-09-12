@@ -1,14 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import {
-  RouterProvider,
-  createBrowserRouter,
-} from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import { Provider } from "react-redux";
 
-import myntraStore from "./store/index.js";
+import styleKartStore from "./store/index.js";
 
 import "./index.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -141,8 +138,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Provider store={myntraStore}>
+    <Provider store={styleKartStore}>
       <RouterProvider router={router} />
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
