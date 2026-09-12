@@ -161,12 +161,20 @@ Create a `.env` file
 ```env
 PORT=5000
 MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=replace-with-a-long-random-secret
+JWT_EXPIRES_IN=1d
 ```
 
 Start backend server
 
 ```bash
 npm start
+```
+
+Create the first admin account from the backend directory. The command prompts for credentials and stores only a bcrypt hash:
+
+```bash
+npm run create-admin
 ```
 
 ---
@@ -191,6 +199,8 @@ Start frontend
 npm run dev
 ```
 
+For local admin requests, the frontend uses `http://localhost:5000/api` by default. To use another backend, create `frontend/.env` with `VITE_API_URL`.
+
 Open your browser
 
 ```
@@ -201,10 +211,17 @@ http://localhost:5173
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/api/products` | Retrieve all products |
-| GET | `/api/products/:id` | Retrieve a single product |
+| Method | Endpoint                | Description                                  |
+| ------ | ----------------------- | -------------------------------------------- |
+| GET    | `/api/products`         | Retrieve all products                        |
+| GET    | `/api/products/:id`     | Retrieve a single product                    |
+| POST   | `/api/auth/admin/login` | Authenticate an admin and return a JWT       |
+| POST   | `/api/auth/register`    | Register a customer account                  |
+| POST   | `/api/auth/login`       | Authenticate a customer and return a JWT     |
+| GET    | `/api/auth/me`          | Return the authenticated user's safe profile |
+| POST   | `/api/products`         | Create a product (admin JWT required)        |
+| PUT    | `/api/products/:id`     | Update a product (admin JWT required)        |
+| DELETE | `/api/products/:id`     | Delete a product (admin JWT required)        |
 
 ---
 
@@ -237,8 +254,6 @@ http://localhost:5173
 
 ## Future Enhancements
 
-- Product CRUD (Admin Dashboard)
-- User Authentication (JWT)
 - Order Management
 - Payment Gateway Integration
 - Product Reviews & Ratings
