@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { clearUserSession, restoreUserSession } from "../store/userAuthSlice";
 import { adminApiUrl } from "../utils/adminApi";
+import { fetchStatusActions } from "../store/fetchStatusSlice";
 
 function App() {
   const fetchStatus = useSelector((store) => store.fetchStatus);
@@ -45,7 +46,26 @@ function App() {
     <>
       <Header />
       <FetchItems />
-      {fetchStatus.currentlyFetching ? <LoadingSpinner /> : <Outlet />}
+      {fetchStatus.currentlyFetching ? (
+        <LoadingSpinner />
+      ) : fetchStatus.error ? (
+        <main className="container py-5 text-center">
+          <div className="py-5">
+            <h2 className="mb-3">Unable to load products</h2>
+
+            <p className="text-muted mb-4">{fetchStatus.error}</p>
+
+            <button
+              className="btn btn-dark"
+              onClick={() => dispatch(fetchStatusActions.resetFetchStatus())}
+            >
+              Try Again
+            </button>
+          </div>
+        </main>
+      ) : (
+        <Outlet />
+      )}
       <Footer />
     </>
   );

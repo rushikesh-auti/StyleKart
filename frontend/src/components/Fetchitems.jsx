@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+
 import { itemsActions } from "../store/itemsSlice";
 import { fetchStatusActions } from "../store/fetchStatusSlice";
 import { adminApiUrl } from "../utils/adminApi";
@@ -9,29 +10,39 @@ const FetchItems = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (fetchStatus.fetchDone) return;
+    if (fetchStatus.fetchDone || fetchStatus.currentlyFetching) {
+      return;
+    }
 
-    dispatch(fetchStatusActions.markFetchingStarted());
+    const fetchProducts = async () => {
+      dispatch(fetchStatusActions.markFetchingStarted());
 
-    fetch(adminApiUrl("/products"))
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Unable to load products");
+      try {
+        const response = await fetch(adminApiUrl("/products"));
+
+        if (!response.ok) {
+          throw new Error("Unable to load products. Please try again.");
         }
-        return res.json();
-      })
-      .then((data) => {
-        dispatch(fetchStatusActions.markFetchDone());
+
+        const data = await response.json();
+
         dispatch(itemsActions.addInitialItems(data.products || []));
-      })
-      .catch((error) => {
-        console.error("Product fetch failed:", error.message);
         dispatch(fetchStatusActions.markFetchDone());
-      })
-      .finally(() => {
+      } catch (error) {
+        console.error("Product fetch failed:", error.message);
+
+        dispatch(
+          fetchStatusActions.markFetchFailed(
+            error.message || "Unable to load products. Please try again.",
+          ),
+        );
+      } finally {
         dispatch(fetchStatusActions.markFetchingFinished());
-      });
-  }, [fetchStatus.fetchDone, dispatch]);
+      }
+    };
+
+    fetchProducts();
+  }, [dispatch, fetchStatus.currentlyFetching, fetchStatus.fetchDone]);
 
   return null;
 };
