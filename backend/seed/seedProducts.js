@@ -1,4 +1,5 @@
 require("dotenv").config();
+
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const data = require("../items.json");
@@ -11,7 +12,7 @@ async function seedProducts() {
 
     await Product.insertMany(data.items);
 
-    console.log(` ${data.items.length} Products Imported`);
+    console.log(`${data.items.length} Products Imported`);
 
     process.exit();
   } catch (error) {
