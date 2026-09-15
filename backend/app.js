@@ -3,10 +3,10 @@ const cors = require("cors");
 
 const productRoutes = require("./routes/productRoutes");
 const authRoutes = require("./routes/authRoutes");
+const errorHandler = require("./middleware/errorMiddleware");
 
 const app = express();
 
-// Middleware
 app.use(
   cors({
     origin: true,
@@ -16,16 +16,16 @@ app.use(
 
 app.use(express.json());
 
-// Health check
 app.get("/", (req, res) => {
-  res.status(200).json({
+  res.json({
     success: true,
     message: "StyleKart API is running",
   });
 });
 
-// API routes
 app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
+
+app.use(errorHandler);
 
 module.exports = app;
