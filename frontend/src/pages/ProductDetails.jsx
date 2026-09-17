@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
@@ -22,18 +23,27 @@ const ProductDetails = () => {
       try {
         setLoading(true);
         setError("");
+        setProduct(null);
 
         const response = await fetch(adminApiUrl(`/products/${id}`));
 
+        const data = await response.json();
+
         if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load product. Please try again.",
+          );
+        }
+
+        if (!data.product) {
           throw new Error("Product not found");
         }
 
-        const data = await response.json();
-
         setProduct(data.product);
       } catch (error) {
-        setError(error.message);
+        console.error("Product fetch failed:", error.message);
+
+        setError(error.message || "Unable to load product. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -201,17 +211,19 @@ const ProductDetails = () => {
               <strong>Category:</strong> {product.category}
             </p>
 
-            <p>
-              <strong>Subcategory:</strong> {product.subcategory}
-            </p>
+            {product.subcategory && (
+              <p>
+                <strong>Subcategory:</strong> {product.subcategory}
+              </p>
+            )}
 
             <p>
               <strong>Stock:</strong> {product.stock}
             </p>
 
-            {product.return_period && (
+            {product.return_period !== undefined && (
               <p>
-                <strong>Return:</strong> {product.return_period}
+                <strong>Return:</strong> {product.return_period} days
               </p>
             )}
 
