@@ -19,30 +19,41 @@ const FetchItems = () => {
 
       try {
         const response = await fetch(adminApiUrl("/products"));
-
-        if (!response.ok) {
-          throw new Error("Unable to load products. Please try again.");
-        }
-
         const data = await response.json();
 
-        dispatch(itemsActions.addInitialItems(data.products || []));
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Unable to load products. Please try again."
+          );
+        }
+
+        dispatch(
+          itemsActions.addInitialItems(data.products || [])
+        );
+
         dispatch(fetchStatusActions.markFetchDone());
       } catch (error) {
         console.error("Product fetch failed:", error.message);
 
         dispatch(
           fetchStatusActions.markFetchFailed(
-            error.message || "Unable to load products. Please try again.",
-          ),
+            error.message ||
+              "Unable to load products. Please try again."
+          )
         );
       } finally {
-        dispatch(fetchStatusActions.markFetchingFinished());
+        dispatch(
+          fetchStatusActions.markFetchingFinished()
+        );
       }
     };
 
     fetchProducts();
-  }, [dispatch, fetchStatus.currentlyFetching, fetchStatus.fetchDone]);
+  }, [
+    dispatch,
+    fetchStatus.currentlyFetching,
+    fetchStatus.fetchDone,
+  ]);
 
   return null;
 };
