@@ -1,25 +1,33 @@
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import FetchItems from "../components/Fetchitems";
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import FetchItems from "../components/FetchItems";
 import LoadingSpinner from "../components/LoadingSpinner";
+
 import { clearUserSession, restoreUserSession } from "../store/userAuthSlice";
-import { adminApiUrl } from "../utils/adminApi";
+
 import { fetchStatusActions } from "../store/fetchStatusSlice";
+import { adminApiUrl } from "../utils/adminApi";
 
 function App() {
   const fetchStatus = useSelector((store) => store.fetchStatus);
   const userToken = useSelector((store) => store.userAuth?.token);
+
   const dispatch = useDispatch();
 
+  // Validate logged-in user session
   useEffect(() => {
     if (!userToken) return undefined;
 
     let active = true;
+
     fetch(adminApiUrl("/auth/me"), {
-      headers: { Authorization: `Bearer ${userToken}` },
+      headers: {
+        Authorization: `Bearer ${userToken}`,
+      },
     })
       .then(async (response) => {
         if (response.status === 401) {
@@ -27,10 +35,19 @@ function App() {
           return;
         }
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          return;
+        }
+
         const data = await response.json();
+
         if (active && data.user) {
-          dispatch(restoreUserSession({ token: userToken, user: data.user }));
+          dispatch(
+            restoreUserSession({
+              token: userToken,
+              user: data.user,
+            }),
+          );
         }
       })
       .catch(() => {
@@ -42,20 +59,23 @@ function App() {
     };
   }, [dispatch, userToken]);
 
-  return (
-    <>
-      <Header />
-      <FetchItems />
-      {fetchStatus.currentlyFetching ? (
-        <LoadingSpinner />
-      ) : fetchStatus.error ? (
-        <main className="container py-5 text-center">
-          <div className="py-5">
+  // Product loading state
+  const renderContent = () => {
+    if (fetchStatus.currentlyFetching) {
+      return <LoadingSpinner />;
+    }
+
+    // Product API error state
+    if (fetchStatus.error) {
+      return (
+        <main className="container py-5">
+          <div className="text-center py-5">
             <h2 className="mb-3">Unable to load products</h2>
 
             <p className="text-muted mb-4">{fetchStatus.error}</p>
 
             <button
+              type="button"
               className="btn btn-dark"
               onClick={() => dispatch(fetchStatusActions.resetFetchStatus())}
             >
@@ -63,9 +83,20 @@ function App() {
             </button>
           </div>
         </main>
-      ) : (
-        <Outlet />
-      )}
+      );
+    }
+
+    return <Outlet />;
+  };
+
+  return (
+    <>
+      <Header />
+
+      <FetchItems />
+
+      {renderContent()}
+
       <Footer />
     </>
   );
