@@ -29,6 +29,7 @@ import Profile from "./pages/Profile.jsx";
 import Orders from "./pages/Orders.jsx";
 
 import AdminLogin from "./pages/AdminLogin.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
@@ -118,6 +119,10 @@ const router = createBrowserRouter([
       {
         element: <AdminProtectedRoute />,
         children: [
+          {
+            path: "/admin",
+            element: <AdminDashboard />,
+          },
           {
             path: "/admin/products",
             element: <AdminProducts />,

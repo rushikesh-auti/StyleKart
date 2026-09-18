@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+
 import { clearAdminSession } from "../store/adminAuthSlice";
 import { adminFetch } from "../utils/adminApi";
-
-const API_PATH = "/products";
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -14,61 +13,51 @@ const AdminProducts = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Fetch all products
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await adminFetch(API_PATH);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch products");
-      }
-
-      setProducts(data.products || []);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await adminFetch("/products");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch products");
+        }
+
+        setProducts(data.products || []);
+      } catch (fetchError) {
+        setError(fetchError.message || "Failed to fetch products");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchProducts();
   }, []);
 
-  // Delete product
   const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this product?",
-    );
-
-    if (!confirmed) return;
+    if (!window.confirm("Are you sure you want to delete this product?")) {
+      return;
+    }
 
     try {
       setError("");
       setMessage("");
 
-      const response = await adminFetch(`${API_PATH}/${id}`, {
+      const response = await adminFetch(`/products/${id}`, {
         method: "DELETE",
       });
-
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to delete product");
       }
 
-      // Remove deleted product from UI
-      setProducts((prevProducts) =>
-        prevProducts.filter((product) => product.id !== id),
+      setProducts((previous) =>
+        previous.filter((product) => product.id !== id),
       );
-
       setMessage("Product deleted successfully.");
-    } catch (error) {
-      setError(error.message);
+    } catch (deleteError) {
+      setError(deleteError.message || "Failed to delete product");
     }
   };
 
@@ -79,29 +68,30 @@ const AdminProducts = () => {
 
   if (loading) {
     return (
-      <div className="container mt-5 text-center">
-        <h4>Loading products...</h4>
-      </div>
+      <main className="container py-5 text-center">
+        <h1 className="h4">Loading products...</h1>
+      </main>
     );
   }
 
   return (
-    <div className="container-fluid mt-5 mb-5 px-4">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <main className="container-fluid py-5 px-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-          <h2 className="fw-bold mb-1">Admin Product Management</h2>
-
+          <h1 className="h2 fw-bold mb-1">Admin Product Management</h1>
           <p className="text-muted mb-0">Manage StyleKart products</p>
         </div>
 
         <div className="d-flex gap-2">
+          <Link to="/admin" className="btn btn-outline-secondary">
+            Dashboard
+          </Link>
           <Link to="/admin/products/add" className="btn btn-primary">
-            + Add Product
+            Add Product
           </Link>
           <button
             type="button"
-            className="btn btn-outline-secondary"
+            className="btn btn-outline-danger"
             onClick={handleLogout}
           >
             Logout
@@ -109,138 +99,102 @@ const AdminProducts = () => {
         </div>
       </div>
 
-      {/* Success Message */}
       {message && <div className="alert alert-success">{message}</div>}
-
-      {/* Error Message */}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Products Table */}
       <div className="card shadow-sm">
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-dark">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="table-dark">
+              <tr>
+                <th>Image</th>
+                <th>ID</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.length === 0 ? (
                 <tr>
-                  <th>Image</th>
-                  <th>ID</th>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Actions</th>
+                  <td colSpan="7" className="text-center py-5">
+                    No products found.
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody>
-                {products.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="text-center py-5">
-                      No products found.
+              ) : (
+                products.map((product) => (
+                  <tr key={product.id}>
+                    <td>
+                      <img
+                        src={`/${product.image}`}
+                        alt={product.item_name}
+                        width="60"
+                        height="75"
+                        style={{ objectFit: "cover", borderRadius: "6px" }}
+                      />
+                    </td>
+                    <td>
+                      <strong>{product.id}</strong>
+                    </td>
+                    <td>
+                      <strong>{product.company}</strong>
+                      <br />
+                      <small className="text-muted">{product.item_name}</small>
+                    </td>
+                    <td>
+                      <span className="badge text-bg-secondary">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>Rs. {product.current_price}</strong>
+                      <br />
+                      <small className="text-muted text-decoration-line-through">
+                        Rs. {product.original_price}
+                      </small>
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          product.stock > 0
+                            ? "badge text-bg-success"
+                            : "badge text-bg-danger"
+                        }
+                      >
+                        {product.stock}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="d-flex gap-2">
+                        <Link
+                          to={`/admin/products/edit/${product.id}`}
+                          className="btn btn-sm btn-warning"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDelete(product.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  products.map((product) => (
-                    <tr key={product.id}>
-                      {/* Image */}
-                      <td>
-                        <img
-                          src={`/${product.image}`}
-                          alt={product.item_name}
-                          width="60"
-                          height="75"
-                          style={{
-                            objectFit: "cover",
-                            borderRadius: "6px",
-                          }}
-                        />
-                      </td>
-
-                      {/* ID */}
-                      <td>
-                        <strong>{product.id}</strong>
-                      </td>
-
-                      {/* Product */}
-                      <td>
-                        <strong>{product.company}</strong>
-
-                        <br />
-
-                        <small className="text-muted">
-                          {product.item_name}
-                        </small>
-                      </td>
-
-                      {/* Category */}
-                      <td>
-                        <span className="badge text-bg-secondary">
-                          {product.category}
-                        </span>
-                      </td>
-
-                      {/* Price */}
-                      <td>
-                        <strong>₹{product.current_price}</strong>
-
-                        <br />
-
-                        <small
-                          className="text-muted"
-                          style={{
-                            textDecoration: "line-through",
-                          }}
-                        >
-                          ₹{product.original_price}
-                        </small>
-                      </td>
-
-                      {/* Stock */}
-                      <td>
-                        <span
-                          className={
-                            product.stock > 0
-                              ? "badge text-bg-success"
-                              : "badge text-bg-danger"
-                          }
-                        >
-                          {product.stock}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Link
-                            to={`/admin/products/edit/${product.id}`}
-                            className="btn btn-sm btn-warning"
-                          >
-                            Edit
-                          </Link>
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleDelete(product.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Product Count */}
-      <div className="mt-3 text-muted">
+      <p className="mt-3 text-muted">
         Total Products: <strong>{products.length}</strong>
-      </div>
-    </div>
+      </p>
+    </main>
   );
 };
 

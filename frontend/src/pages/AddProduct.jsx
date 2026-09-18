@@ -104,13 +104,22 @@ const AddProduct = () => {
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0">Add New Product</h2>
 
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => navigate("/admin/products")}
-                >
-                  Back
-                </button>
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => navigate("/admin")}
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => navigate("/admin/products")}
+                  >
+                    Products
+                  </button>
+                </div>
               </div>
 
               {/* Success Message */}

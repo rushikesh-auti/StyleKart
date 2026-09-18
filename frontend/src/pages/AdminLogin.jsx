@@ -60,8 +60,8 @@ const AdminLogin = () => {
 
       dispatch(setAdminSession({ token: data.token, admin: data.admin }));
 
-      // Redirect to admin products
-      navigate("/admin/products", {
+      // Redirect to the admin dashboard
+      navigate("/admin", {
         replace: true,
       });
     } catch (error) {
