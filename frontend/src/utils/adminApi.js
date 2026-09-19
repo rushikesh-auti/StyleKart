@@ -15,7 +15,15 @@ export const adminFetch = async (path, options = {}) => {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const requestUrl = /^https?:\/\//i.test(path)
+    ? path
+    : `${API_BASE_URL}${path}`;
+
+  const response = await fetch(requestUrl, {
     ...options,
     headers,
   });
@@ -28,4 +36,5 @@ export const adminFetch = async (path, options = {}) => {
   return response;
 };
 
-export const adminApiUrl = (path) => `${API_BASE_URL}${path}`;
+export const adminApiUrl = (path) =>
+  /^https?:\/\//i.test(path) ? path : `${API_BASE_URL}${path}`;

@@ -43,7 +43,7 @@ function EditProduct() {
 
         const response = await fetch(adminApiUrl(`/products/${id}`));
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
           throw new Error(data.message || "Unable to load product.");
@@ -144,10 +144,13 @@ function EditProduct() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.message || "Unable to update product.");
+        throw new Error(
+          data.message ||
+            `Unable to update product (server returned ${response.status}).`
+        );
       }
 
       navigate("/admin/products");

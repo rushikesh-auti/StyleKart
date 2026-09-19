@@ -152,17 +152,17 @@ const ProductForm = ({
 
         <div className="col-12">
           <label htmlFor="image" className="form-label">
-            Image URL *
+            Image Path or URL *
           </label>
 
           <input
             id="image"
-            type="url"
+            type="text"
             name="image"
             value={formData.image}
             onChange={onChange}
             className="form-control"
-            placeholder="https://example.com/product.jpg"
+            placeholder="images/product.jpg or https://example.com/product.jpg"
             required
           />
         </div>
@@ -173,7 +173,11 @@ const ProductForm = ({
               <p className="small text-muted mb-2">Image Preview</p>
 
               <img
-                src={formData.image}
+                src={
+                  /^https?:\/\//i.test(formData.image)
+                    ? formData.image
+                    : `/${formData.image.replace(/^\/+/, "")}`
+                }
                 alt="Product preview"
                 style={{
                   width: "140px",
