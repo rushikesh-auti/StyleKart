@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
-import FetchItems from "../components/FetchItems";
+import FetchItems from "../components/Fetchitems";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 import { clearUserSession, restoreUserSession } from "../store/userAuthSlice";
