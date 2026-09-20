@@ -1,125 +1,124 @@
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { FaHeart, FaRegHeart, FaStar } from "react-icons/fa";
+
 import { bagActions } from "../store/bagSlice";
-import { GrAddCircle } from "react-icons/gr";
-import { AiFillDelete } from "react-icons/ai";
-import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { wishlistActions } from "../store/wishlistSlice";
 
 const HomeItem = ({ item }) => {
   const dispatch = useDispatch();
-
   const bagItems = useSelector((store) => store.bag || []);
   const wishlistItems = useSelector((store) => store.wishlist || []);
 
-  const elementFound = bagItems.includes(item.id);
-  const wishlistFound = wishlistItems.includes(item.id);
+  const isInBag = bagItems.includes(item.id);
+  const isInWishlist = wishlistItems.includes(item.id);
+  const isOutOfStock = item.stock <= 0;
+  const imagePath = `/${String(item.image || "").replace(/^\/+/, "")}`;
 
-  const handleAddToBag = () => {
-    dispatch(bagActions.addToBag(item.id));
+  const addToCart = () => {
+    if (!isOutOfStock && !isInBag) {
+      dispatch(bagActions.addToBag(item.id));
+    }
   };
 
-  const handleRemove = () => {
-    dispatch(bagActions.removeFromBag(item.id));
-  };
+  const toggleWishlist = () => {
+    if (isInWishlist) {
+      dispatch(wishlistActions.removeFromWishlist(item.id));
+      return;
+    }
 
-  const handleWishlist = () => {
     dispatch(wishlistActions.addToWishlist(item.id));
   };
 
-  const handleRemoveWishlist = () => {
-    dispatch(wishlistActions.removeFromWishlist(item.id));
-  };
-
   return (
-    <div className="item-container">
+    <article className="product-card">
+      <div className="product-card-image-wrap">
+        <Link to={`/product/${item.id}`} className="product-card-image-link">
+          <img
+            className="product-card-image"
+            src={imagePath}
+            alt={item.item_name}
+            loading="lazy"
+          />
+        </Link>
 
-      {/* Product Image */}
-      <Link to={`/product/${item.id}`}>
-        <img
-          className="item-image"
-          src={`/${item.image}`}
-          alt={item.item_name}
-        />
-      </Link>
-
-      <div className="rating">
-        {item.rating?.stars || 0} ⭐ | {item.rating?.count || 0}
-      </div>
-
-      <div className="company-name">
-        {item.company}
-      </div>
-
-      {/* Product Name */}
-      <Link
-        to={`/product/${item.id}`}
-        className="product-link"
-      >
-        <div className="item-name">
-          {item.item_name}
-        </div>
-      </Link>
-
-      <div className="price">
-        <span className="current-price">
-          ₹{item.current_price}
-        </span>
-
-        <span className="original-price">
-          ₹{item.original_price}
-        </span>
-
-        <span className="discount">
-          ({item.discount_percentage}% OFF)
-        </span>
-      </div>
-
-      {/* Cart */}
-      {elementFound ? (
         <button
           type="button"
-          className="btn btn-add-bag btn-danger"
-          onClick={handleRemove}
+          className="product-card-wishlist"
+          onClick={toggleWishlist}
+          aria-label={
+            isInWishlist
+              ? `Remove ${item.item_name} from wishlist`
+              : `Add ${item.item_name} to wishlist`
+          }
         >
-          <AiFillDelete /> Remove
+          {isInWishlist ? <FaHeart /> : <FaRegHeart />}
         </button>
-      ) : (
-        <button
-          type="button"
-          className="btn btn-add-bag btn-success"
-          onClick={handleAddToBag}
-        >
-          <GrAddCircle /> Add to Cart
-        </button>
-      )}
 
-      {/* Wishlist */}
-      <button
-        type="button"
-        className={
-          wishlistFound
-            ? "btn btn-danger"
-            : "btn btn-outline-danger"
-        }
-        onClick={
-          wishlistFound
-            ? handleRemoveWishlist
-            : handleWishlist
-        }
-      >
-        {wishlistFound ? (
-          <>
-            <FaHeart /> Remove Wishlist
-          </>
-        ) : (
-          <>
-            <FaRegHeart /> Wishlist
-          </>
+        {item.discount_percentage > 0 && (
+          <span className="product-card-deal">
+            {item.discount_percentage}% OFF
+          </span>
         )}
-      </button>
+      </div>
 
-    </div>
+      <div className="product-card-content">
+        <Link to={`/product/${item.id}`} className="product-card-details">
+          <p className="product-card-brand">{item.brand || item.company}</p>
+
+          <h3 className="product-card-name">{item.item_name}</h3>
+        </Link>
+
+        <div className="product-card-rating">
+          <FaStar />
+          <span>{item.rating?.stars?.toFixed(1) || "0.0"}</span>
+          <span className="product-card-rating-count">
+            ({item.rating?.count || 0})
+          </span>
+        </div>
+
+        <div className="product-card-price">
+          <span className="product-card-current-price">
+            ₹{item.current_price?.toLocaleString("en-IN")}
+          </span>
+
+          {item.original_price > item.current_price && (
+            <span className="product-card-original-price">
+              ₹{item.original_price?.toLocaleString("en-IN")}
+            </span>
+          )}
+        </div>
+
+        <p
+          className={
+            isOutOfStock
+              ? "product-card-stock out-of-stock"
+              : item.stock <= 5
+                ? "product-card-stock low-stock"
+                : "product-card-stock"
+          }
+        >
+          {isOutOfStock
+            ? "Out of stock"
+            : item.stock <= 5
+              ? `Only ${item.stock} left`
+              : "In stock"}
+        </p>
+
+        <button
+          type="button"
+          className="product-card-cart-button"
+          disabled={isOutOfStock || isInBag}
+          onClick={addToCart}
+        >
+          {isOutOfStock
+            ? "Unavailable"
+            : isInBag
+              ? "Added to Cart"
+              : "Add to Cart"}
+        </button>
+      </div>
+    </article>
   );
 };
 
