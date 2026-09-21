@@ -12,7 +12,7 @@ const getProducts = async (req, res, next) => {
   try {
     const {
       page = 1,
-      limit = 24,
+      limit = 12,
       search,
       category,
       brand,
@@ -27,26 +27,35 @@ const getProducts = async (req, res, next) => {
       sort = "recommended",
     } = req.query;
 
-    const filter = {};
+    const conditions = [];
 
     if (category?.trim()) {
-      filter.category = category.trim().toLowerCase();
+      conditions.push({
+        category: category.trim().toLowerCase(),
+      });
     }
 
     if (subcategory?.trim()) {
-      filter.subcategory = new RegExp(
-        escapeRegex(subcategory.trim()),
-        "i",
-      );
+      conditions.push({
+        subcategory: new RegExp(
+          escapeRegex(subcategory.trim()),
+          "i",
+        ),
+      });
     }
 
     if (brand?.trim()) {
-      const brandPattern = new RegExp(escapeRegex(brand.trim()), "i");
+      const brandPattern = new RegExp(
+        escapeRegex(brand.trim()),
+        "i",
+      );
 
-      filter.$or = [
-        { brand: brandPattern },
-        { company: brandPattern },
-      ];
+      conditions.push({
+        $or: [
+          { brand: brandPattern },
+          { company: brandPattern },
+        ],
+      });
     }
 
     if (search?.trim()) {
@@ -55,57 +64,84 @@ const getProducts = async (req, res, next) => {
         "i",
       );
 
-      filter.$or = [
-        { item_name: searchPattern },
-        { company: searchPattern },
-        { brand: searchPattern },
-        { category: searchPattern },
-        { subcategory: searchPattern },
-      ];
+      conditions.push({
+        $or: [
+          { item_name: searchPattern },
+          { company: searchPattern },
+          { brand: searchPattern },
+          { category: searchPattern },
+          { subcategory: searchPattern },
+        ],
+      });
     }
 
     const parsedMinPrice = parseNumber(minPrice);
     const parsedMaxPrice = parseNumber(maxPrice);
 
     if (parsedMinPrice !== undefined || parsedMaxPrice !== undefined) {
-      filter.current_price = {};
+      const priceFilter = {};
 
       if (parsedMinPrice !== undefined) {
-        filter.current_price.$gte = parsedMinPrice;
+        priceFilter.$gte = parsedMinPrice;
       }
 
       if (parsedMaxPrice !== undefined) {
-        filter.current_price.$lte = parsedMaxPrice;
+        priceFilter.$lte = parsedMaxPrice;
       }
+
+      conditions.push({
+        current_price: priceFilter,
+      });
     }
 
     const parsedMinDiscount = parseNumber(minDiscount);
 
     if (parsedMinDiscount !== undefined) {
-      filter.discount_percentage = { $gte: parsedMinDiscount };
+      conditions.push({
+        discount_percentage: {
+          $gte: parsedMinDiscount,
+        },
+      });
     }
 
     const parsedMinRating = parseNumber(minRating);
 
     if (parsedMinRating !== undefined) {
-      filter["rating.stars"] = { $gte: parsedMinRating };
+      conditions.push({
+        "rating.stars": {
+          $gte: parsedMinRating,
+        },
+      });
     }
 
     if (size?.trim()) {
-      filter.sizes = new RegExp(escapeRegex(size.trim()), "i");
+      conditions.push({
+        sizes: new RegExp(escapeRegex(size.trim()), "i"),
+      });
     }
 
     if (color?.trim()) {
-      filter.colors = new RegExp(escapeRegex(color.trim()), "i");
+      conditions.push({
+        colors: new RegExp(escapeRegex(color.trim()), "i"),
+      });
     }
 
     if (availability === "in-stock") {
-      filter.stock = { $gt: 0 };
+      conditions.push({
+        stock: { $gt: 0 },
+      });
     }
 
     if (availability === "out-of-stock") {
-      filter.stock = 0;
+      conditions.push({
+        stock: 0,
+      });
     }
+
+    const filter =
+      conditions.length > 0
+        ? { $and: conditions }
+        : {};
 
     const sortOptions = {
       recommended: {
@@ -114,16 +150,27 @@ const getProducts = async (req, res, next) => {
         discount_percentage: -1,
         createdAt: -1,
       },
-      newest: { createdAt: -1 },
-      price_asc: { current_price: 1 },
-      price_desc: { current_price: -1 },
-      rating: { "rating.stars": -1, "rating.count": -1 },
-      discount: { discount_percentage: -1 },
+      newest: {
+        createdAt: -1,
+      },
+      price_asc: {
+        current_price: 1,
+      },
+      price_desc: {
+        current_price: -1,
+      },
+      rating: {
+        "rating.stars": -1,
+        "rating.count": -1,
+      },
+      discount: {
+        discount_percentage: -1,
+      },
     };
 
     const currentPage = Math.max(parseInt(page, 10) || 1, 1);
     const pageLimit = Math.min(
-      Math.max(parseInt(limit, 10) || 24, 1),
+      Math.max(parseInt(limit, 10) || 12, 1),
       100,
     );
     const skip = (currentPage - 1) * pageLimit;
@@ -136,7 +183,10 @@ const getProducts = async (req, res, next) => {
       Product.countDocuments(filter),
     ]);
 
-    const totalPages = Math.max(Math.ceil(total / pageLimit), 1);
+    const totalPages = Math.max(
+      Math.ceil(total / pageLimit),
+      1,
+    );
 
     res.status(200).json({
       success: true,
