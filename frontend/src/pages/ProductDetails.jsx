@@ -1,240 +1,457 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { FaStar } from "react-icons/fa";
 
+import HomeItem from "../components/HomeItem";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
+import { getProducts } from "../utils/productApi";
+import {
+  addRecentlyViewedProduct,
+  getRecentlyViewedProducts,
+} from "../utils/recentlyViewed";
+import "../styles/home.css";
+import "../styles/productDetails.css";
 
 const ProductDetails = () => {
   const { id } = useParams();
-
   const dispatch = useDispatch();
 
-  const bagItems = useSelector((store) => store.bag);
-  const wishlistItems = useSelector((store) => store.wishlist);
+  const bagItems = useSelector((store) => store.bag || []);
+  const wishlistItems = useSelector((store) => store.wishlist || []);
 
   const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [recentlyViewedProducts, setRecentlyViewedProducts] = useState([]);
+  const [selectedImage, setSelectedImage] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectionError, setSelectionError] = useState("");
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    let active = true;
+
+    const loadProduct = async () => {
       try {
         setLoading(true);
         setError("");
         setProduct(null);
 
-        const response = await fetch(adminApiUrl(`/products/${id}`));
-
+        const response = await fetch(
+          adminApiUrl(`/products/${id}`),
+        );
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.message || "Unable to load product. Please try again.",
+            data.message || "Unable to load product.",
           );
         }
 
         if (!data.product) {
-          throw new Error("Product not found");
+          throw new Error("Product not found.");
         }
 
-        setProduct(data.product);
-      } catch (error) {
-        console.error("Product fetch failed:", error.message);
+        if (!active) {
+          return;
+        }
 
-        setError(error.message || "Unable to load product. Please try again.");
+        const loadedProduct = data.product;
+        const galleryImages = [
+          ...(loadedProduct.images || []),
+          loadedProduct.image,
+        ].filter(Boolean);
+
+        setProduct(loadedProduct);
+        setSelectedImage(galleryImages[0] || "");
+        setSelectedSize("");
+        setSelectedColor("");
+        setQuantity(1);
+
+        addRecentlyViewedProduct(loadedProduct);
+        setRecentlyViewedProducts(
+          getRecentlyViewedProducts(loadedProduct.id),
+        );
+      } catch (requestError) {
+        if (active) {
+          setError(
+            requestError.message ||
+              "Unable to load product. Please try again.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchProduct();
+    loadProduct();
+
+    return () => {
+      active = false;
+    };
   }, [id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRelatedProducts = async () => {
+      if (!product?.category) {
+        return;
+      }
+
+      try {
+        const data = await getProducts({
+          category: product.category,
+          limit: 5,
+          sort: "recommended",
+        });
+
+        if (!active) {
+          return;
+        }
+
+        setRelatedProducts(
+          (data.products || [])
+            .filter((item) => item.id !== product.id)
+            .slice(0, 4),
+        );
+      } catch {
+        if (active) {
+          setRelatedProducts([]);
+        }
+      }
+    };
+
+    loadRelatedProducts();
+
+    return () => {
+      active = false;
+    };
+  }, [product?.id, product?.category]);
+
+  const galleryImages = useMemo(() => {
+    if (!product) {
+      return [];
+    }
+
+    return [
+      ...(product.images || []),
+      product.image,
+    ].filter(
+      (image, index, images) =>
+        image && images.indexOf(image) === index,
+    );
+  }, [product]);
 
   if (loading) {
     return (
-      <div className="product-details-status">
-        <h3>Loading product...</h3>
-      </div>
+      <main className="product-details-status">
+        <h1>Loading product...</h1>
+      </main>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="product-details-status">
-        <h3>{error || "Product not found"}</h3>
-      </div>
+      <main className="product-details-status">
+        <h1>{error || "Product not found"}</h1>
+        <Link to="/products">Back to products</Link>
+      </main>
     );
   }
 
   const isInBag = bagItems.includes(product.id);
   const isInWishlist = wishlistItems.includes(product.id);
+  const isOutOfStock = product.stock <= 0;
+  const needsSizeSelection = product.sizes?.length > 0;
 
-  const handleAddToBag = () => {
-    if (!isInBag) {
-      dispatch(bagActions.addToBag(product.id));
+  const stockMessage = isOutOfStock
+    ? "Out of stock"
+    : product.stock <= 5
+      ? `Only ${product.stock} left`
+      : "In stock";
+
+  const updateQuantity = (nextQuantity) => {
+    if (nextQuantity >= 1 && nextQuantity <= product.stock) {
+      setQuantity(nextQuantity);
     }
   };
 
-  const handleRemoveFromBag = () => {
-    if (isInBag) {
-      dispatch(bagActions.removeFromBag(product.id));
+  const addToCart = () => {
+    if (needsSizeSelection && !selectedSize) {
+      setSelectionError("Please select a size before adding to cart.");
+      return;
     }
+
+    setSelectionError("");
+    dispatch(bagActions.addToBag(product.id));
   };
 
-  const handleWishlist = () => {
-    if (!isInWishlist) {
-      dispatch(wishlistActions.addToWishlist(product.id));
-    }
-  };
-
-  const handleRemoveWishlist = () => {
+  const toggleWishlist = () => {
     if (isInWishlist) {
       dispatch(wishlistActions.removeFromWishlist(product.id));
+      return;
     }
+
+    dispatch(wishlistActions.addToWishlist(product.id));
   };
+
+  const imagePath = `/${String(
+    selectedImage || product.image,
+  ).replace(/^\/+/, "")}`;
 
   return (
     <main className="product-details-page">
-      <div className="product-details-container">
-        <div className="product-details-image-section">
-          <img
-            src={`/${product.image}`}
-            alt={product.item_name}
-            className="product-details-image"
-          />
+      <section className="product-details-container">
+        <div className="product-gallery">
+          <div className="product-thumbnail-list">
+            {galleryImages.map((image) => (
+              <button
+                key={image}
+                type="button"
+                className={
+                  selectedImage === image
+                    ? "product-thumbnail active"
+                    : "product-thumbnail"
+                }
+                onClick={() => setSelectedImage(image)}
+                aria-label={`View ${product.item_name}`}
+              >
+                <img
+                  src={`/${String(image).replace(/^\/+/, "")}`}
+                  alt=""
+                />
+              </button>
+            ))}
+          </div>
+
+          <div className="product-main-image-wrap">
+            <img
+              src={imagePath}
+              alt={product.item_name}
+              className="product-main-image"
+            />
+          </div>
         </div>
 
         <div className="product-details-info">
-          <h1 className="product-details-company">{product.company}</h1>
+          <p className="product-details-brand">
+            {product.brand || product.company}
+          </p>
 
-          <p className="product-details-name">{product.item_name}</p>
+          <h1>{product.item_name}</h1>
 
           <div className="product-details-rating">
-            {product.rating?.stars || 0} ⭐
-            <span>| {product.rating?.count || 0} Ratings</span>
+            <FaStar />
+            <strong>
+              {product.rating?.stars?.toFixed(1) || "0.0"}
+            </strong>
+            <span>
+              {product.rating?.count || 0} ratings
+            </span>
           </div>
-
-          <hr />
 
           <div className="product-details-price">
-            <span className="details-current-price">
-              ₹{product.current_price}
-            </span>
+            <strong>
+              ₹{product.current_price?.toLocaleString("en-IN")}
+            </strong>
 
-            <span className="details-original-price">
-              ₹{product.original_price}
-            </span>
+            {product.original_price > product.current_price && (
+              <span>
+                ₹{product.original_price?.toLocaleString("en-IN")}
+              </span>
+            )}
 
-            <span className="details-discount">
-              {product.discount_percentage}% OFF
-            </span>
+            {product.discount_percentage > 0 && (
+              <em>{product.discount_percentage}% OFF</em>
+            )}
           </div>
 
-          <p className="tax-info">inclusive of all taxes</p>
+          <p
+            className={
+              isOutOfStock
+                ? "product-stock-status out-of-stock"
+                : product.stock <= 5
+                  ? "product-stock-status low-stock"
+                  : "product-stock-status"
+            }
+          >
+            {stockMessage}
+          </p>
 
-          {product.sizes?.length > 0 && (
-            <div className="product-option">
-              <h3>Select Size</h3>
+          {product.description && (
+            <p className="product-description">
+              {product.description}
+            </p>
+          )}
 
-              <div className="size-options">
+          {needsSizeSelection && (
+            <section className="product-option-group">
+              <div className="product-option-heading">
+                <h2>Select size</h2>
+                <span>Required</span>
+              </div>
+
+              <div className="product-size-options">
                 {product.sizes.map((size) => (
-                  <button type="button" key={size} className="size-button">
+                  <button
+                    key={size}
+                    type="button"
+                    className={
+                      selectedSize === size
+                        ? "product-size-option active"
+                        : "product-size-option"
+                    }
+                    onClick={() => {
+                      setSelectedSize(size);
+                      setSelectionError("");
+                    }}
+                  >
                     {size}
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {product.colors?.length > 0 && (
-            <div className="product-option">
-              <h3>Available Colors</h3>
+            <section className="product-option-group">
+              <div className="product-option-heading">
+                <h2>Select color</h2>
+                <span>{selectedColor || "Optional"}</span>
+              </div>
 
-              <div className="color-options">
+              <div className="product-color-options">
                 {product.colors.map((color) => (
-                  <span className="color-option" key={color}>
+                  <button
+                    key={color}
+                    type="button"
+                    className={
+                      selectedColor === color
+                        ? "product-color-option active"
+                        : "product-color-option"
+                    }
+                    onClick={() => setSelectedColor(color)}
+                  >
                     {color}
-                  </span>
+                  </button>
                 ))}
               </div>
+            </section>
+          )}
+
+          <section className="product-option-group">
+            <div className="product-option-heading">
+              <h2>Quantity</h2>
+              <span>{product.stock} available</span>
             </div>
+
+            <div className="product-quantity-control">
+              <button
+                type="button"
+                disabled={quantity <= 1}
+                onClick={() => updateQuantity(quantity - 1)}
+              >
+                −
+              </button>
+
+              <span>{quantity}</span>
+
+              <button
+                type="button"
+                disabled={quantity >= product.stock}
+                onClick={() => updateQuantity(quantity + 1)}
+              >
+                +
+              </button>
+            </div>
+          </section>
+
+          {selectionError && (
+            <p className="product-selection-error">
+              {selectionError}
+            </p>
           )}
 
           <div className="product-details-actions">
-            {isInBag ? (
-              <button
-                type="button"
-                className="details-remove-button"
-                onClick={handleRemoveFromBag}
-              >
-                Remove from Cart
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="details-cart-button"
-                onClick={handleAddToBag}
-              >
-                Add to Cart
-              </button>
-            )}
+            <button
+              type="button"
+              className="product-add-cart"
+              disabled={isOutOfStock || isInBag}
+              onClick={addToCart}
+            >
+              {isOutOfStock
+                ? "Out of Stock"
+                : isInBag
+                  ? "Added to Cart"
+                  : "Add to Cart"}
+            </button>
 
-            {isInWishlist ? (
-              <button
-                type="button"
-                className="details-wishlist-button active"
-                onClick={handleRemoveWishlist}
-              >
-                ♥ Remove Wishlist
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="details-wishlist-button"
-                onClick={handleWishlist}
-              >
-                ♡ Wishlist
-              </button>
-            )}
+            <button
+              type="button"
+              className="product-add-wishlist"
+              onClick={toggleWishlist}
+            >
+              {isInWishlist
+                ? "Remove from Wishlist"
+                : "Add to Wishlist"}
+            </button>
           </div>
 
-          <div className="product-information">
-            <h3>Product Details</h3>
-
-            <p>
-              <strong>Brand:</strong> {product.brand || product.company}
-            </p>
-
+          <section className="product-information-card">
+            <h2>Product information</h2>
             <p>
               <strong>Category:</strong> {product.category}
             </p>
-
-            {product.subcategory && (
-              <p>
-                <strong>Subcategory:</strong> {product.subcategory}
-              </p>
-            )}
-
             <p>
-              <strong>Stock:</strong> {product.stock}
+              <strong>Return policy:</strong>{" "}
+              {product.return_period} day returns
             </p>
-
-            {product.return_period !== undefined && (
-              <p>
-                <strong>Return:</strong> {product.return_period} days
-              </p>
-            )}
-
-            {product.delivery_date && (
-              <p>
-                <strong>Delivery:</strong> {product.delivery_date}
-              </p>
-            )}
-          </div>
+            <p>
+              <strong>Delivery:</strong>{" "}
+              {product.delivery_date ||
+                "Delivery details available at checkout"}
+            </p>
+          </section>
         </div>
-      </div>
+      </section>
+
+      {relatedProducts.length > 0 && (
+        <section className="product-recommendation-section">
+          <div>
+            <p className="home-eyebrow">You may also like</p>
+            <h2>Related products</h2>
+          </div>
+
+          <div className="home-product-grid">
+            {relatedProducts.map((item) => (
+              <HomeItem key={item.id} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {recentlyViewedProducts.length > 0 && (
+        <section className="product-recommendation-section">
+          <div>
+            <p className="home-eyebrow">Continue exploring</p>
+            <h2>Recently viewed</h2>
+          </div>
+
+          <div className="home-product-grid">
+            {recentlyViewedProducts.slice(0, 4).map((item) => (
+              <HomeItem key={item.id} item={item} />
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 };
