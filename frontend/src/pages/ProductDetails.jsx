@@ -42,15 +42,11 @@ const ProductDetails = () => {
         setError("");
         setProduct(null);
 
-        const response = await fetch(
-          adminApiUrl(`/products/${id}`),
-        );
+        const response = await fetch(adminApiUrl(`/products/${id}`));
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Unable to load product.",
-          );
+          throw new Error(data.message || "Unable to load product.");
         }
 
         if (!data.product) {
@@ -74,14 +70,11 @@ const ProductDetails = () => {
         setQuantity(1);
 
         addRecentlyViewedProduct(loadedProduct);
-        setRecentlyViewedProducts(
-          getRecentlyViewedProducts(loadedProduct.id),
-        );
+        setRecentlyViewedProducts(getRecentlyViewedProducts(loadedProduct.id));
       } catch (requestError) {
         if (active) {
           setError(
-            requestError.message ||
-              "Unable to load product. Please try again.",
+            requestError.message || "Unable to load product. Please try again.",
           );
         }
       } finally {
@@ -141,12 +134,8 @@ const ProductDetails = () => {
       return [];
     }
 
-    return [
-      ...(product.images || []),
-      product.image,
-    ].filter(
-      (image, index, images) =>
-        image && images.indexOf(image) === index,
+    return [...(product.images || []), product.image].filter(
+      (image, index, images) => image && images.indexOf(image) === index,
     );
   }, [product]);
 
@@ -167,7 +156,12 @@ const ProductDetails = () => {
     );
   }
 
-  const isInBag = bagItems.includes(product.id);
+  const isInBag = bagItems.some(
+    (item) =>
+      item.productId === product.id &&
+      item.selectedSize === selectedSize &&
+      item.selectedColor === selectedColor,
+  );
   const isInWishlist = wishlistItems.includes(product.id);
   const isOutOfStock = product.stock <= 0;
   const needsSizeSelection = product.sizes?.length > 0;
@@ -191,7 +185,14 @@ const ProductDetails = () => {
     }
 
     setSelectionError("");
-    dispatch(bagActions.addToBag(product.id));
+    dispatch(
+      bagActions.addToBag({
+        productId: product.id,
+        quantity,
+        selectedSize,
+        selectedColor,
+      }),
+    );
   };
 
   const toggleWishlist = () => {
@@ -203,9 +204,10 @@ const ProductDetails = () => {
     dispatch(wishlistActions.addToWishlist(product.id));
   };
 
-  const imagePath = `/${String(
-    selectedImage || product.image,
-  ).replace(/^\/+/, "")}`;
+  const imagePath = `/${String(selectedImage || product.image).replace(
+    /^\/+/,
+    "",
+  )}`;
 
   return (
     <main className="product-details-page">
@@ -224,10 +226,7 @@ const ProductDetails = () => {
                 onClick={() => setSelectedImage(image)}
                 aria-label={`View ${product.item_name}`}
               >
-                <img
-                  src={`/${String(image).replace(/^\/+/, "")}`}
-                  alt=""
-                />
+                <img src={`/${String(image).replace(/^\/+/, "")}`} alt="" />
               </button>
             ))}
           </div>
@@ -250,23 +249,15 @@ const ProductDetails = () => {
 
           <div className="product-details-rating">
             <FaStar />
-            <strong>
-              {product.rating?.stars?.toFixed(1) || "0.0"}
-            </strong>
-            <span>
-              {product.rating?.count || 0} ratings
-            </span>
+            <strong>{product.rating?.stars?.toFixed(1) || "0.0"}</strong>
+            <span>{product.rating?.count || 0} ratings</span>
           </div>
 
           <div className="product-details-price">
-            <strong>
-              ₹{product.current_price?.toLocaleString("en-IN")}
-            </strong>
+            <strong>₹{product.current_price?.toLocaleString("en-IN")}</strong>
 
             {product.original_price > product.current_price && (
-              <span>
-                ₹{product.original_price?.toLocaleString("en-IN")}
-              </span>
+              <span>₹{product.original_price?.toLocaleString("en-IN")}</span>
             )}
 
             {product.discount_percentage > 0 && (
@@ -287,9 +278,7 @@ const ProductDetails = () => {
           </p>
 
           {product.description && (
-            <p className="product-description">
-              {product.description}
-            </p>
+            <p className="product-description">{product.description}</p>
           )}
 
           {needsSizeSelection && (
@@ -375,9 +364,7 @@ const ProductDetails = () => {
           </section>
 
           {selectionError && (
-            <p className="product-selection-error">
-              {selectionError}
-            </p>
+            <p className="product-selection-error">{selectionError}</p>
           )}
 
           <div className="product-details-actions">
@@ -399,9 +386,7 @@ const ProductDetails = () => {
               className="product-add-wishlist"
               onClick={toggleWishlist}
             >
-              {isInWishlist
-                ? "Remove from Wishlist"
-                : "Add to Wishlist"}
+              {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
             </button>
           </div>
 
@@ -411,8 +396,8 @@ const ProductDetails = () => {
               <strong>Category:</strong> {product.category}
             </p>
             <p>
-              <strong>Return policy:</strong>{" "}
-              {product.return_period} day returns
+              <strong>Return policy:</strong> {product.return_period} day
+              returns
             </p>
             <p>
               <strong>Delivery:</strong>{" "}

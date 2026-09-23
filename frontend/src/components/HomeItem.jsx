@@ -10,14 +10,19 @@ const HomeItem = ({ item }) => {
   const bagItems = useSelector((store) => store.bag || []);
   const wishlistItems = useSelector((store) => store.wishlist || []);
 
-  const isInBag = bagItems.includes(item.id);
+  const isInBag = bagItems.some((bagItem) => bagItem.productId === item.id);
   const isInWishlist = wishlistItems.includes(item.id);
   const isOutOfStock = item.stock <= 0;
   const imagePath = `/${String(item.image || "").replace(/^\/+/, "")}`;
 
   const addToCart = () => {
     if (!isOutOfStock && !isInBag) {
-      dispatch(bagActions.addToBag(item.id));
+      dispatch(
+        bagActions.addToBag({
+          productId: item.id,
+          quantity: 1,
+        }),
+      );
     }
   };
 
