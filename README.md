@@ -255,6 +255,9 @@ http://localhost:5173
 ## Future Enhancements
 
 - Order Management
+- Protected multi-step checkout with saved addresses and Cash on Delivery
+- Server-calculated order totals with transactional stock reduction
+- Authenticated order history, order details, and tracking timeline
 - Payment Gateway Integration
 - Product Reviews & Ratings
 - Inventory Management
