@@ -25,6 +25,8 @@ import ProductDetails from "./pages/ProductDetails.jsx";
 import UserLogin from "./pages/UserLogin.jsx";
 import Profile from "./pages/Profile.jsx";
 import Orders from "./pages/Orders.jsx";
+import Checkout from "./pages/Checkout.jsx";
+import OrderDetails from "./pages/OrderDetails.jsx";
 import Addresses from "./pages/Addresses.jsx";
 
 import AdminLogin from "./pages/AdminLogin.jsx";
@@ -82,6 +84,11 @@ const router = createBrowserRouter([
         element: <Bag />,
       },
       {
+        path: "/checkout",
+        element: <ProtectedRoute />,
+        children: [{ index: true, element: <Checkout /> }],
+      },
+      {
         path: "/login",
         element: <UserLogin />,
       },
@@ -99,6 +106,10 @@ const router = createBrowserRouter([
           {
             path: "/orders",
             element: <Orders />,
+          },
+          {
+            path: "/orders/:id",
+            element: <OrderDetails />,
           },
         ],
       },
