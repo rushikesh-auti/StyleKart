@@ -34,9 +34,11 @@ import AdminDashboard from "./pages/AdminDashboard.jsx";
 import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
+import AdminCoupons from "./pages/AdminCoupons.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
+import CustomerOnlyRoute from "./components/CustomerOnlyRoute.jsx";
 
 const router = createBrowserRouter([
   {
@@ -76,12 +78,17 @@ const router = createBrowserRouter([
         element: <ProductDetails />,
       },
       {
-        path: "/wishlist",
-        element: <Wishlist />,
-      },
-      {
-        path: "/bag",
-        element: <Bag />,
+        element: <CustomerOnlyRoute />,
+        children: [
+          {
+            path: "/wishlist",
+            element: <Wishlist />,
+          },
+          {
+            path: "/bag",
+            element: <Bag />,
+          },
+        ],
       },
       {
         path: "/checkout",
@@ -135,6 +142,10 @@ const router = createBrowserRouter([
           {
             path: "/admin/products/edit/:id",
             element: <EditProduct />,
+          },
+          {
+            path: "/admin/coupons",
+            element: <AdminCoupons />,
           },
         ],
       },

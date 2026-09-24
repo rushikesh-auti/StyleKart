@@ -1,16 +1,19 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { BsFillPersonFill } from "react-icons/bs";
 import { BsShieldLockFill } from "react-icons/bs";
 import { FaChevronDown } from "react-icons/fa6";
 import { FaFaceGrinHearts, FaBagShopping } from "react-icons/fa6";
-import { FaBars } from "react-icons/fa";
+import { FaBars, FaHome } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 import { searchActions } from "../store/searchSlice";
 import { clearUserSession } from "../store/userAuthSlice";
 import { clearAdminSession } from "../store/adminAuthSlice";
 
 const Header = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const bag = useSelector((store) => store.bag || []);
   const wishlist = useSelector((store) => store.wishlist || []);
@@ -21,14 +24,23 @@ const Header = () => {
     (store) => store.adminAuth?.isAuthenticated,
   );
   const user = useSelector((store) => store.userAuth?.user);
+  const [searchText, setSearchText] = useState("");
 
   const handleSearch = (event) => {
-    dispatch(searchActions.setSearchText(event.target.value));
+    const value = event.target.value;
+    setSearchText(value);
+    dispatch(searchActions.setSearchText(value));
   };
 
-  const closeMenu = () => {
-    return undefined;
+  const submitSearch = (event) => {
+    event.preventDefault();
+    const value = searchText.trim();
+    navigate(
+      value ? `/products?search=${encodeURIComponent(value)}` : "/products",
+    );
   };
+
+  const closeMenu = () => undefined;
 
   const handleUserLogout = () => {
     dispatch(clearUserSession());
@@ -37,13 +49,12 @@ const Header = () => {
 
   const handleAdminLogout = () => {
     dispatch(clearAdminSession());
-    closeMenu();
     window.location.assign("/admin/login");
   };
 
   return (
     <>
-      <header>
+      <header className="site-header">
         <div className="logo_container">
           <Link to="/" onClick={closeMenu}>
             <img
@@ -54,38 +65,51 @@ const Header = () => {
           </Link>
         </div>
 
-        <nav className="nav_bar">
-          <Link to="/men" onClick={closeMenu}>
+        <nav className="nav_bar" aria-label="Primary navigation">
+          <NavLink to="/men" onClick={closeMenu}>
             Men
-          </Link>
+          </NavLink>
 
-          <Link to="/women" onClick={closeMenu}>
+          <NavLink to="/women" onClick={closeMenu}>
             Women
-          </Link>
+          </NavLink>
 
-          <Link to="/kids" onClick={closeMenu}>
+          <NavLink to="/kids" onClick={closeMenu}>
             Kids
-          </Link>
+          </NavLink>
 
-          <Link to="/beauty" onClick={closeMenu}>
+          <NavLink to="/beauty" onClick={closeMenu}>
             Beauty
-          </Link>
+          </NavLink>
         </nav>
 
-        <div className="search_bar">
+        <form className="search_bar" role="search" onSubmit={submitSearch}>
+          <FaSearch aria-hidden="true" />
           <input
             type="text"
             className="search_input"
             placeholder="Search products..."
+            aria-label="Search products"
+            value={searchText}
             onChange={handleSearch}
           />
-        </div>
+          {searchText && (
+            <button
+              type="button"
+              className="search_clear"
+              aria-label="Clear search"
+              onClick={() => handleSearch({ target: { value: "" } })}
+            >
+              x
+            </button>
+          )}
+        </form>
 
         <div className="action_bar">
           {isAdminAuthenticated ? (
-            <>
+            <div className="desktop-header-actions">
               <Link
-                to="/admin/products"
+                to="/admin"
                 className="action_container"
                 onClick={closeMenu}
               >
@@ -100,9 +124,9 @@ const Header = () => {
               >
                 Admin Logout
               </button>
-            </>
+            </div>
           ) : isUserAuthenticated ? (
-            <>
+            <div className="desktop-header-actions">
               <Link
                 to="/profile"
                 className="action_container"
@@ -111,24 +135,16 @@ const Header = () => {
                 <BsFillPersonFill size={20} />
                 <span className="action_name">{user.name || "Profile"}</span>
               </Link>
-              <Link
+              {/* <Link
                 to="/orders"
                 className="action_container"
                 onClick={closeMenu}
               >
                 <span className="action_name">Orders</span>
-              </Link>
-              <button
-                type="button"
-                className="btn btn-outline-danger"
-                onClick={handleUserLogout}
-                title="Log out"
-              >
-                Logout
-              </button>
-            </>
+              </Link> */}
+            </div>
           ) : (
-            <details className="auth_menu">
+            <details className="auth_menu desktop-header-actions">
               <summary className="action_container auth_trigger">
                 <BsFillPersonFill size={20} />
                 <span className="action_name">Login</span>
@@ -148,31 +164,46 @@ const Header = () => {
             </details>
           )}
 
-          <Link
-            className="action_container desktop_action"
-            to="/wishlist"
-            onClick={closeMenu}
-          >
-            <FaFaceGrinHearts size={20} />
-            <span className="action_name">Wishlist</span>
+          {!isAdminAuthenticated && (
+            <>
+              <Link
+                className="action_container desktop_action"
+                to="/wishlist"
+                onClick={closeMenu}
+              >
+                <FaFaceGrinHearts size={20} />
+                <span className="action_name">Wishlist</span>
 
-            {wishlist.length > 0 && (
-              <span className="bag-item-count">{wishlist.length}</span>
-            )}
-          </Link>
+                {wishlist.length > 0 && (
+                  <span className="bag-item-count">{wishlist.length}</span>
+                )}
+              </Link>
 
-          <Link
-            className="action_container desktop_action"
-            to="/bag"
-            onClick={closeMenu}
-          >
-            <FaBagShopping size={20} />
-            <span className="action_name">Cart</span>
+              <Link
+                className="action_container desktop_action"
+                to="/bag"
+                onClick={closeMenu}
+              >
+                <FaBagShopping size={20} />
+                <span className="action_name">Cart</span>
 
-            {bag.length > 0 && (
-              <span className="bag-item-count">{bag.length}</span>
-            )}
-          </Link>
+                {bag.length > 0 && (
+                  <span className="bag-item-count">{bag.length}</span>
+                )}
+              </Link>
+            </>
+          )}
+
+          {isUserAuthenticated && (
+            <button
+              type="button"
+              className="btn btn-outline-danger desktop-logout"
+              onClick={handleUserLogout}
+              title="Log out"
+            >
+              Logout
+            </button>
+          )}
         </div>
       </header>
 
@@ -181,55 +212,72 @@ const Header = () => {
         role="navigation"
         aria-label="Mobile Navigation"
       >
-        <Link to="/" className="mobile_nav_item" onClick={closeMenu}>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.5z"
-              fill="currentColor"
-            />
-          </svg>
+        <NavLink to="/" className="mobile_nav_item" onClick={closeMenu}>
+          <span className="mobile-home-icon" aria-hidden="true">
+            <FaHome aria-hidden="true" />
+          </span>
           <span>Home</span>
-        </Link>
+        </NavLink>
 
         <Link to="/categories" className="mobile_nav_item" onClick={closeMenu}>
           <FaBars />
           <span>Categories</span>
         </Link>
 
-        <Link to="/wishlist" className="mobile_nav_item" onClick={closeMenu}>
-          <FaFaceGrinHearts />
-          <span>Wishlist</span>
+        {!isAdminAuthenticated && (
+          <>
+            <Link
+              to="/wishlist"
+              className="mobile_nav_item"
+              onClick={closeMenu}
+            >
+              <FaFaceGrinHearts />
+              <span>Wishlist</span>
 
-          {wishlist.length > 0 && (
-            <span className="bag-item-count">{wishlist.length}</span>
-          )}
-        </Link>
+              {wishlist.length > 0 && (
+                <span className="bag-item-count">{wishlist.length}</span>
+              )}
+            </Link>
 
-        <Link to="/bag" className="mobile_nav_item" onClick={closeMenu}>
-          <FaBagShopping />
-          <span>Cart</span>
+            <Link to="/bag" className="mobile_nav_item" onClick={closeMenu}>
+              <FaBagShopping />
+              <span>Cart</span>
 
-          {bag.length > 0 && (
-            <span className="bag-item-count">{bag.length}</span>
-          )}
-        </Link>
+              {bag.length > 0 && (
+                <span className="bag-item-count">{bag.length}</span>
+              )}
+            </Link>
+          </>
+        )}
 
-        <Link
-          to={isAdminAuthenticated ? "/admin" : user ? "/profile" : "/login"}
-          className="mobile_nav_item"
-          onClick={closeMenu}
-        >
-          {isAdminAuthenticated ? <BsShieldLockFill /> : <BsFillPersonFill />}
-          <span>
-            {isAdminAuthenticated ? "Admin" : user ? "Account" : "Login"}
-          </span>
-        </Link>
+        {isUserAuthenticated ? (
+          <details className="mobile_nav_item mobile_account_menu">
+            <summary>
+              <BsFillPersonFill />
+              <span>Account</span>
+            </summary>
+            <div className="mobile_account_dropdown">
+              <Link to="/profile" onClick={closeMenu}>
+                Profile
+              </Link>
+              <Link to="/orders" onClick={closeMenu}>
+                Orders
+              </Link>
+              <button type="button" onClick={handleUserLogout}>
+                Logout
+              </button>
+            </div>
+          </details>
+        ) : (
+          <Link
+            to={isAdminAuthenticated ? "/admin" : "/login"}
+            className="mobile_nav_item"
+            onClick={closeMenu}
+          >
+            {isAdminAuthenticated ? <BsShieldLockFill /> : <BsFillPersonFill />}
+            <span>{isAdminAuthenticated ? "Admin" : "Login"}</span>
+          </Link>
+        )}
       </nav>
     </>
   );
