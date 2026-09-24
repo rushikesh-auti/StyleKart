@@ -25,6 +25,7 @@ import ProductDetails from "./pages/ProductDetails.jsx";
 import UserLogin from "./pages/UserLogin.jsx";
 import Profile from "./pages/Profile.jsx";
 import Orders from "./pages/Orders.jsx";
+import Addresses from "./pages/Addresses.jsx";
 
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
@@ -90,6 +91,10 @@ const router = createBrowserRouter([
           {
             path: "/profile",
             element: <Profile />,
+          },
+          {
+            path: "/addresses",
+            element: <Addresses />,
           },
           {
             path: "/orders",
