@@ -22,6 +22,10 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponMessage, setCouponMessage] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
     userFetch("/addresses")
@@ -60,6 +64,7 @@ const Checkout = () => {
         body: JSON.stringify({
           addressId: selectedAddressId,
           paymentMethod,
+          couponCode,
           items: summary.lines.map(({ entry, quantity }) => ({
             productId: entry.productId,
             quantity,
@@ -75,6 +80,28 @@ const Checkout = () => {
       setError(requestError.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const applyCoupon = async (event) => {
+    event.preventDefault();
+    try {
+      setCouponLoading(true);
+      setCouponMessage("");
+      const data = await userFetch("/coupons/validate", {
+        method: "POST",
+        body: JSON.stringify({ code: couponCode, subtotal: summary.subtotal }),
+      });
+      setCouponCode(data.code);
+      setCouponDiscount(data.discount || 0);
+      setCouponMessage(
+        `Coupon applied: save ₹${(data.discount || 0).toLocaleString("en-IN")}`,
+      );
+    } catch (requestError) {
+      setCouponDiscount(0);
+      setCouponMessage(requestError.message);
+    } finally {
+      setCouponLoading(false);
     }
   };
 
@@ -128,6 +155,33 @@ const Checkout = () => {
                   </strong>
                 </div>
               ))}
+              <form className="checkout-coupon" onSubmit={applyCoupon}>
+                <label htmlFor="coupon-code">Coupon code</label>
+                <div>
+                  <input
+                    id="coupon-code"
+                    value={couponCode}
+                    onChange={(event) => {
+                      setCouponCode(event.target.value.toUpperCase());
+                      setCouponDiscount(0);
+                      setCouponMessage("");
+                    }}
+                    placeholder="Enter code"
+                  />
+                  <button type="submit" disabled={couponLoading || !couponCode}>
+                    {couponLoading ? "Checking..." : "Apply"}
+                  </button>
+                </div>
+                {couponMessage && (
+                  <p
+                    className={
+                      couponDiscount ? "coupon-success" : "coupon-error"
+                    }
+                  >
+                    {couponMessage}
+                  </p>
+                )}
+              </form>
             </>
           )}
 
@@ -248,6 +302,14 @@ const Checkout = () => {
             <span>MRP</span>
             <strong>₹{summary.totalMrp.toLocaleString("en-IN")}</strong>
           </p>
+          {couponDiscount > 0 && (
+            <p>
+              <span>Coupon discount</span>
+              <strong className="discount">
+                -₹{couponDiscount.toLocaleString("en-IN")}
+              </strong>
+            </p>
+          )}
           <p>
             <span>Discount</span>
             <strong className="discount">
@@ -263,7 +325,9 @@ const Checkout = () => {
           <hr />
           <p className="total">
             <span>Total</span>
-            <strong>₹{summary.totalAmount.toLocaleString("en-IN")}</strong>
+            <strong>
+              ₹{(summary.totalAmount - couponDiscount).toLocaleString("en-IN")}
+            </strong>
           </p>
         </aside>
       </section>

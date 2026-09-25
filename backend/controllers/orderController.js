@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 
 const Address = require("../models/Address");
+const Coupon = require("../models/Coupon");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const { findValidCoupon, normalizeCode } = require("../services/couponService");
 
 const createOrderNumber = () =>
   `SK-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -50,7 +52,7 @@ const createOrder = async (req, res, next) => {
   const session = await mongoose.startSession();
 
   try {
-    const { addressId, items, paymentMethod = "COD" } = req.body;
+    const { addressId, items, paymentMethod = "COD", couponCode = "" } = req.body;
 
     if (!addressId || !mongoose.isValidObjectId(addressId) || !Array.isArray(items) || items.length === 0) {
       throw badRequest("A delivery address and at least one cart item are required.");
@@ -130,6 +132,35 @@ const createOrder = async (req, res, next) => {
       });
     }
 
+    let couponDiscount = 0;
+    let appliedCouponCode = "";
+
+    if (couponCode) {
+      const couponResult = await findValidCoupon(couponCode, subtotal, session);
+      if (couponResult.error) {
+        throw badRequest(couponResult.error);
+      }
+
+      const normalizedCouponCode = normalizeCode(couponCode);
+      const couponUsage = await Coupon.updateOne(
+        {
+          code: normalizedCouponCode,
+          active: true,
+          expiryDate: { $gt: new Date() },
+          usedCount: { $lt: couponResult.coupon.usageLimit },
+        },
+        { $inc: { usedCount: 1 } },
+        { session },
+      );
+
+      if (couponUsage.modifiedCount !== 1) {
+        throw badRequest("This coupon is no longer available.");
+      }
+
+      couponDiscount = couponResult.discount;
+      appliedCouponCode = normalizedCouponCode;
+    }
+
     const discount = totalMrp - subtotal;
     const delivery = subtotal >= 999 ? 0 : 99;
     const order = await Order.create(
@@ -139,8 +170,15 @@ const createOrder = async (req, res, next) => {
         items: orderItems,
         shippingAddress: address.toObject(),
         paymentMethod,
-        priceSummary: { totalMrp, discount, delivery, subtotal },
-        totalAmount: subtotal + delivery,
+        priceSummary: {
+          totalMrp,
+          discount,
+          couponCode: appliedCouponCode,
+          couponDiscount,
+          delivery,
+          subtotal,
+        },
+        totalAmount: subtotal - couponDiscount + delivery,
       }],
       { session },
     );

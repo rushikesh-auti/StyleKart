@@ -13,6 +13,15 @@
 .checkout-line { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; align-items: center; gap: 14px; border-bottom: 1px solid #f1f5f9; padding: 12px 0; }
 .checkout-line img { width: 62px; height: 78px; border-radius: 6px; object-fit: cover; background: #f3f4f6; }
 .checkout-line p { margin: 4px 0 0; color: #6b7280; font-size: .84rem; }
+.checkout-coupon { margin-top: 22px; border-top: 1px solid #f1f5f9; padding-top: 18px; }
+.checkout-coupon label { display: block; margin-bottom: 7px; color: #4b5563; font-size: .85rem; font-weight: 800; }
+.checkout-coupon div { display: flex; gap: 8px; }
+.checkout-coupon input { min-width: 0; flex: 1; border: 1px solid #d1d5db; border-radius: 7px; padding: 10px; text-transform: uppercase; }
+.checkout-coupon button { border: 1px solid #111827; border-radius: 7px; background: #111827; padding: 0 16px; color: #fff; font-weight: 800; }
+.checkout-coupon button:disabled { opacity: .6; }
+.checkout-coupon p { margin: 8px 0 0; font-size: .85rem; font-weight: 700; }
+.coupon-success { color: #15803d; }
+.coupon-error { color: #b91c1c; }
 .checkout-panel-heading { display: flex; justify-content: space-between; gap: 12px; }
 .checkout-panel-heading a, .checkout-panel a { color: #be185d; font-weight: 700; }
 .address-choice-list { display: grid; gap: 12px; }

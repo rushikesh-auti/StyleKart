@@ -52,6 +52,20 @@ const AdminDashboard = () => {
         <div className="col-12 col-md-6 col-lg-4">
           <div className="card h-100 border-0 shadow-sm">
             <div className="card-body p-4">
+              <h2 className="h4 fw-semibold">Coupons</h2>
+              <p className="text-muted">
+                Create, review, and deactivate promotional coupon codes.
+              </p>
+              <Link to="/admin/coupons" className="btn btn-outline-dark">
+                Manage Coupons
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-md-6 col-lg-4">
+          <div className="card h-100 border-0 shadow-sm">
+            <div className="card-body p-4">
               <h2 className="h4 fw-semibold">Add Product</h2>
               <p className="text-muted">
                 Add a new fashion or beauty product to the StyleKart catalog.
