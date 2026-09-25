@@ -8,6 +8,7 @@ import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
 import { getProducts } from "../utils/productApi";
+import { userFetch } from "../utils/userApi";
 import {
   addRecentlyViewedProduct,
   getRecentlyViewedProducts,
@@ -21,6 +22,7 @@ const ProductDetails = () => {
 
   const bagItems = useSelector((store) => store.bag || []);
   const wishlistItems = useSelector((store) => store.wishlist || []);
+  const currentUser = useSelector((store) => store.userAuth?.user);
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -32,6 +34,15 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectionError, setSelectionError] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    title: "",
+    comment: "",
+  });
+  const [editingReviewId, setEditingReviewId] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -89,6 +100,17 @@ const ProductDetails = () => {
     return () => {
       active = false;
     };
+  }, [id]);
+
+  useEffect(() => {
+    fetch(adminApiUrl(`/reviews/product/${id}`))
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.message || "Unable to load reviews.");
+        setReviews(data.reviews || []);
+      })
+      .catch((requestError) => setReviewError(requestError.message));
   }, [id]);
 
   useEffect(() => {
@@ -202,6 +224,46 @@ const ProductDetails = () => {
     }
 
     dispatch(wishlistActions.addToWishlist(product.id));
+  };
+
+  const submitReview = async (event) => {
+    event.preventDefault();
+    try {
+      setReviewSubmitting(true);
+      setReviewError("");
+      await userFetch(
+        editingReviewId
+          ? `/reviews/${editingReviewId}`
+          : `/reviews/product/${product.id}`,
+        {
+          method: editingReviewId ? "PUT" : "POST",
+          body: JSON.stringify(reviewForm),
+        },
+      );
+      const response = await fetch(
+        adminApiUrl(`/reviews/product/${product.id}`),
+      );
+      const data = await response.json();
+      setReviews(data.reviews || []);
+      setReviewForm({ rating: 5, title: "", comment: "" });
+      setEditingReviewId("");
+    } catch (requestError) {
+      setReviewError(requestError.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const deleteReview = async (reviewId) => {
+    try {
+      setReviewError("");
+      await userFetch(`/reviews/${reviewId}`, { method: "DELETE" });
+      setReviews((currentReviews) =>
+        currentReviews.filter((review) => review._id !== reviewId),
+      );
+    } catch (requestError) {
+      setReviewError(requestError.message);
+    }
   };
 
   const imagePath = `/${String(selectedImage || product.image).replace(
@@ -405,6 +467,132 @@ const ProductDetails = () => {
                 "Delivery details available at checkout"}
             </p>
           </section>
+        </div>
+      </section>
+
+      <section className="product-reviews-section">
+        <div className="product-reviews-heading">
+          <div>
+            <p className="home-eyebrow">Verified customer feedback</p>
+            <h2>Reviews ({reviews.length})</h2>
+          </div>
+          {!currentUser && (
+            <Link to="/login">Log in to review after purchase</Link>
+          )}
+        </div>
+
+        {currentUser && (
+          <form className="review-form" onSubmit={submitReview}>
+            <h3>
+              {editingReviewId ? "Edit your review" : "Review this product"}
+            </h3>
+            <div className="review-form-row">
+              <label>
+                Rating
+                <select
+                  value={reviewForm.rating}
+                  onChange={(event) =>
+                    setReviewForm({
+                      ...reviewForm,
+                      rating: Number(event.target.value),
+                    })
+                  }
+                >
+                  <option value="5">5 - Excellent</option>
+                  <option value="4">4 - Good</option>
+                  <option value="3">3 - Average</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="1">1 - Bad</option>
+                </select>
+              </label>
+              <label>
+                Title
+                <input
+                  value={reviewForm.title}
+                  maxLength="120"
+                  onChange={(event) =>
+                    setReviewForm({ ...reviewForm, title: event.target.value })
+                  }
+                  required
+                />
+              </label>
+            </div>
+            <label>
+              Comment
+              <textarea
+                value={reviewForm.comment}
+                maxLength="1000"
+                onChange={(event) =>
+                  setReviewForm({ ...reviewForm, comment: event.target.value })
+                }
+                required
+              />
+            </label>
+            <button
+              type="submit"
+              className="product-review-submit"
+              disabled={reviewSubmitting}
+            >
+              {reviewSubmitting
+                ? "Saving..."
+                : editingReviewId
+                  ? "Update review"
+                  : "Submit review"}
+            </button>
+            {editingReviewId && (
+              <button
+                type="button"
+                className="product-review-cancel"
+                onClick={() => {
+                  setEditingReviewId("");
+                  setReviewForm({ rating: 5, title: "", comment: "" });
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </form>
+        )}
+
+        {reviewError && (
+          <p className="product-selection-error">{reviewError}</p>
+        )}
+        <div className="product-review-list">
+          {reviews.length === 0 && <p>No reviews yet.</p>}
+          {reviews.map((review) => (
+            <article className="product-review" key={review._id}>
+              <div className="product-review-meta">
+                <strong>{review.title}</strong>
+                <span>
+                  {review.rating}/5 · {review.user?.name || "Verified customer"}
+                </span>
+              </div>
+              <p>{review.comment}</p>
+              {currentUser?.id === review.user?._id && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingReviewId(review._id);
+                      setReviewForm({
+                        rating: review.rating,
+                        title: review.title,
+                        comment: review.comment,
+                      });
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteReview(review._id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </article>
+          ))}
         </div>
       </section>
 
