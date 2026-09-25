@@ -35,6 +35,9 @@ import AdminProducts from "./pages/AdminProducts.jsx";
 import AddProduct from "./pages/AddProduct.jsx";
 import EditProduct from "./pages/EditProduct.jsx";
 import AdminCoupons from "./pages/AdminCoupons.jsx";
+import AdminOrders from "./pages/AdminOrders.jsx";
+import AdminCustomers from "./pages/AdminCustomers.jsx";
+import AdminInventory from "./pages/AdminInventory.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
@@ -146,6 +149,18 @@ const router = createBrowserRouter([
           {
             path: "/admin/coupons",
             element: <AdminCoupons />,
+          },
+          {
+            path: "/admin/orders",
+            element: <AdminOrders />,
+          },
+          {
+            path: "/admin/customers",
+            element: <AdminCustomers />,
+          },
+          {
+            path: "/admin/inventory",
+            element: <AdminInventory />,
           },
         ],
       },
