@@ -23,7 +23,11 @@ const orderSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    items: { type: [orderItemSchema], required: true, minlength: 1 },
+    items: {
+      type: [orderItemSchema],
+      required: true,
+      minlength: 1,
+    },
     shippingAddress: {
       fullName: { type: String, required: true },
       mobile: { type: String, required: true },
@@ -41,12 +45,23 @@ const orderSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["PENDING", "PAID", "FAILED"],
+      enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],
       default: "PENDING",
     },
     orderStatus: {
       type: String,
-      enum: ["PLACED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"],
+      enum: [
+        "PLACED",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "OUT_FOR_DELIVERY",
+        "DELIVERED",
+        "CANCELLED",
+        "RETURN_REQUESTED",
+        "RETURNED",
+        "REFUNDED",
+      ],
       default: "PLACED",
     },
     priceSummary: {
@@ -57,11 +72,19 @@ const orderSchema = new mongoose.Schema(
       delivery: { type: Number, required: true, min: 0 },
       subtotal: { type: Number, required: true, min: 0 },
     },
-    totalAmount: { type: Number, required: true, min: 0 },
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
 orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ orderStatus: 1, createdAt: -1 });
+orderSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Order", orderSchema);
