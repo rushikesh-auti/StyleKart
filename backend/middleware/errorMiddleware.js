@@ -1,5 +1,39 @@
+const notFound = (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found.",
+  });
+};
+
 const errorHandler = (err, req, res, next) => {
-  console.error(err);
+  if (res.headersSent) return next(err);
+
+  const statusCode = Number.isInteger(err.statusCode) ? err.statusCode : 500;
+
+  if (process.env.NODE_ENV !== "test") {
+    console.error(err);
+  }
+
+  if (err.type === "entity.parse.failed") {
+    return res.status(400).json({
+      success: false,
+      message: "Request body contains invalid JSON.",
+    });
+  }
+
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({
+      success: false,
+      message: "Request body is too large.",
+    });
+  }
+
+  if (err.name === "CastError") {
+    return res.status(400).json({
+      success: false,
+      message: "A resource identifier is invalid.",
+    });
+  }
 
   if (err.name === "ValidationError") {
     const errors = {};
@@ -24,11 +58,10 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  res.status(err.statusCode || 500).json({
+  return res.status(statusCode).json({
     success: false,
-    message:
-      err.message || "Internal server error",
+    message: statusCode >= 500 ? "Internal server error." : err.message,
   });
 };
 
-module.exports = errorHandler;
+module.exports = { errorHandler, notFound };

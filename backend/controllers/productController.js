@@ -59,19 +59,8 @@ const getProducts = async (req, res, next) => {
     }
 
     if (search?.trim()) {
-      const searchPattern = new RegExp(
-        escapeRegex(search.trim().slice(0, 100)),
-        "i",
-      );
-
       conditions.push({
-        $or: [
-          { item_name: searchPattern },
-          { company: searchPattern },
-          { brand: searchPattern },
-          { category: searchPattern },
-          { subcategory: searchPattern },
-        ],
+        $text: { $search: search.trim().slice(0, 100) },
       });
     }
 
@@ -230,7 +219,7 @@ const getProductById = async (req, res, next) => {
 
 const createProduct = async (req, res, next) => {
   try {
-    const product = await Product.create(req.body);
+    const product = await Product.create(req.productInput);
 
     res.status(201).json({
       success: true,
@@ -246,7 +235,7 @@ const updateProduct = async (req, res, next) => {
   try {
     const product = await Product.findOneAndUpdate(
       { id: req.params.id },
-      req.body,
+      req.productInput,
       {
         new: true,
         runValidators: true,

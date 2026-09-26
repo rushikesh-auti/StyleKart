@@ -11,7 +11,40 @@ const validateProduct = (req, res, next) => {
     rating,
   } = req.body;
 
+  const allowedFields = [
+    "id",
+    "category",
+    "subcategory",
+    "brand",
+    "company",
+    "item_name",
+    "description",
+    "image",
+    "images",
+    "original_price",
+    "current_price",
+    "discount_percentage",
+    "stock",
+    "sizes",
+    "colors",
+    "return_period",
+    "delivery_date",
+    "rating",
+  ];
+
   const errors = {};
+
+  const unexpectedFields = Object.keys(req.body).filter(
+    (field) => !allowedFields.includes(field),
+  );
+
+  if (unexpectedFields.length > 0) {
+    errors.fields = "Request contains unsupported product fields";
+  }
+
+  if (req.method === "POST" && (!req.body.id || typeof req.body.id !== "string")) {
+    errors.id = "Product id is required";
+  }
 
   if (!category || typeof category !== "string" || !category.trim()) {
     errors.category = "Category is required";
@@ -73,8 +106,15 @@ const validateProduct = (req, res, next) => {
     errors.stock = "Stock must be a valid non-negative number";
   }
 
+  if (
+    req.body.return_period !== undefined &&
+    (typeof req.body.return_period !== "number" || req.body.return_period < 0)
+  ) {
+    errors.return_period = "Return period must be a valid non-negative number";
+  }
+
   if (rating !== undefined) {
-    if (typeof rating !== "object" || rating === null) {
+    if (typeof rating !== "object" || rating === null || Array.isArray(rating)) {
       errors.rating = "Rating must be an object";
     } else {
       if (
@@ -105,6 +145,44 @@ const validateProduct = (req, res, next) => {
       errors,
     });
   }
+
+  const optionalTextFields = [
+    "subcategory",
+    "brand",
+    "description",
+    "delivery_date",
+  ];
+  const stringArrayFields = ["images", "sizes", "colors"];
+
+  for (const field of optionalTextFields) {
+    if (req.body[field] !== undefined && typeof req.body[field] !== "string") {
+      errors[field] = `${field} must be text`;
+    }
+  }
+
+  for (const field of stringArrayFields) {
+    if (
+      req.body[field] !== undefined &&
+      (!Array.isArray(req.body[field]) ||
+        req.body[field].some((value) => typeof value !== "string"))
+    ) {
+      errors[field] = `${field} must be an array of text values`;
+    }
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Product validation failed",
+      errors,
+    });
+  }
+
+  req.productInput = Object.fromEntries(
+    Object.entries(req.body).filter(([field]) => allowedFields.includes(field)),
+  );
+
+  if (req.method === "PUT") delete req.productInput.id;
 
   next();
 };

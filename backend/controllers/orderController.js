@@ -54,7 +54,13 @@ const createOrder = async (req, res, next) => {
   try {
     const { addressId, items, paymentMethod = "COD", couponCode = "" } = req.body;
 
-    if (!addressId || !mongoose.isValidObjectId(addressId) || !Array.isArray(items) || items.length === 0) {
+    if (
+      typeof addressId !== "string" ||
+      !mongoose.isValidObjectId(addressId) ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      items.length > 50
+    ) {
       throw badRequest("A delivery address and at least one cart item are required.");
     }
 
@@ -72,15 +78,46 @@ const createOrder = async (req, res, next) => {
       throw badRequest("Select one of your saved delivery addresses.");
     }
 
-    const requestedItems = items.map((item) => ({
-      productId: String(item.productId || "").trim(),
-      quantity: Number(item.quantity),
-      selectedSize: String(item.selectedSize || "").trim(),
-      selectedColor: String(item.selectedColor || "").trim(),
-    }));
+    const allowedItemFields = [
+      "productId",
+      "quantity",
+      "selectedSize",
+      "selectedColor",
+    ];
+    const requestedItems = items.map((item) => {
+      if (
+        !item ||
+        typeof item !== "object" ||
+        Array.isArray(item) ||
+        Object.keys(item).some((field) => !allowedItemFields.includes(field)) ||
+        typeof item.productId !== "string" ||
+        typeof item.quantity !== "number" ||
+        (item.selectedSize !== undefined && typeof item.selectedSize !== "string") ||
+        (item.selectedColor !== undefined && typeof item.selectedColor !== "string")
+      ) {
+        return null;
+      }
 
-    if (requestedItems.some((item) => !item.productId || !Number.isInteger(item.quantity) || item.quantity < 1)) {
+      return {
+        productId: item.productId.trim(),
+        quantity: item.quantity,
+        selectedSize: item.selectedSize?.trim() || "",
+        selectedColor: item.selectedColor?.trim() || "",
+      };
+    });
+
+    if (requestedItems.some((item) =>
+      !item ||
+      !item.productId ||
+      item.productId.length > 100 ||
+      !Number.isInteger(item.quantity) ||
+      item.quantity < 1
+    )) {
       throw badRequest("Cart items contain an invalid quantity or product.");
+    }
+
+    if (typeof couponCode !== "string" || couponCode.length > 30) {
+      throw badRequest("Coupon code is invalid.");
     }
 
     await session.startTransaction();

@@ -10,16 +10,41 @@ const {
 
 const { protect } = require("../middleware/authMiddleware");
 const validateProduct = require("../middleware/validateProduct");
+const {
+  allowBodyFields,
+  allowQueryFields,
+  requireJsonObject,
+} = require("../middleware/requestSecurity");
 
 const router = express.Router();
 
-router.get("/", getProducts);
+router.get(
+  "/",
+  allowQueryFields([
+    "page",
+    "limit",
+    "search",
+    "category",
+    "brand",
+    "subcategory",
+    "minPrice",
+    "maxPrice",
+    "minDiscount",
+    "minRating",
+    "size",
+    "color",
+    "availability",
+    "sort",
+  ]),
+  getProducts,
+);
 
 router.get("/:id", getProductById);
 
 router.post(
   "/",
   protect,
+  requireJsonObject,
   validateProduct,
   createProduct
 );
@@ -27,6 +52,7 @@ router.post(
 router.put(
   "/:id",
   protect,
+  requireJsonObject,
   validateProduct,
   updateProduct
 );
@@ -34,6 +60,7 @@ router.put(
 router.delete(
   "/:id",
   protect,
+  allowBodyFields([]),
   deleteProduct
 );
 
