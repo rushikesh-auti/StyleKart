@@ -3,6 +3,17 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
 
+const authCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: (process.env.COOKIE_SAME_SITE || "lax").toLowerCase(),
+  path: "/",
+});
+
+const setAuthCookie = (res, token) => {
+  res.cookie("stylekart_session", token, authCookieOptions());
+};
+
 const createToken = (account) =>
   jwt.sign(
     {
@@ -13,7 +24,7 @@ const createToken = (account) =>
     { expiresIn: process.env.JWT_EXPIRES_IN || "1d" },
   );
 
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
   try {
     const name = req.body.name?.trim();
     const email = req.body.email?.trim().toLowerCase();
@@ -61,10 +72,9 @@ const registerUser = async (req, res) => {
       password: await bcrypt.hash(password, 12),
     });
 
-    const token = createToken(user);
+    setAuthCookie(res, createToken(user));
     return res.status(201).json({
       success: true,
-      token,
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
@@ -74,12 +84,11 @@ const registerUser = async (req, res) => {
         message: "An account with this email already exists",
       });
     }
-    console.error("User registration error:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return next(error);
   }
 };
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
   try {
     const email = req.body.email?.trim().toLowerCase();
     const { password } = req.body;
@@ -101,18 +110,18 @@ const loginUser = async (req, res) => {
       });
     }
 
+    setAuthCookie(res, createToken(user));
+
     return res.status(200).json({
       success: true,
-      token: createToken(user),
       user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
-    console.error("User login error:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return next(error);
   }
 };
 
-const loginAdmin = async (req, res) => {
+const loginAdmin = async (req, res, next) => {
   try {
     const email = req.body.email?.trim().toLowerCase();
     const { password } = req.body;
@@ -155,12 +164,11 @@ const loginAdmin = async (req, res) => {
       });
     }
 
-    const token = createToken(admin);
+    setAuthCookie(res, createToken(admin));
 
     res.status(200).json({
       success: true,
       message: "Admin login successful",
-      token,
       admin: {
         id: admin._id,
         name: admin.name,
@@ -169,12 +177,7 @@ const loginAdmin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Admin login error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    next(error);
   }
 };
 
@@ -185,9 +188,15 @@ const getCurrentUser = (req, res) => {
   });
 };
 
+const logoutUser = (req, res) => {
+  res.clearCookie("stylekart_session", authCookieOptions());
+  res.status(200).json({ success: true, message: "Logged out successfully." });
+};
+
 module.exports = {
   registerUser,
   loginUser,
   loginAdmin,
   getCurrentUser,
+  logoutUser,
 };

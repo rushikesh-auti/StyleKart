@@ -8,30 +8,26 @@ import FetchItems from "../components/Fetchitems";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 import { clearUserSession, restoreUserSession } from "../store/userAuthSlice";
+import { clearAdminSession, setAdminSession } from "../store/adminAuthSlice";
 
 import { fetchStatusActions } from "../store/fetchStatusSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 function App() {
   const fetchStatus = useSelector((store) => store.fetchStatus);
-  const userToken = useSelector((store) => store.userAuth?.token);
-
   const dispatch = useDispatch();
 
-  // Validate logged-in user session
+  // Restore the server-validated session from the HttpOnly cookie.
   useEffect(() => {
-    if (!userToken) return undefined;
-
     let active = true;
 
     fetch(adminApiUrl("/auth/me"), {
-      headers: {
-        Authorization: `Bearer ${userToken}`,
-      },
+      credentials: "include",
     })
       .then(async (response) => {
         if (response.status === 401) {
           dispatch(clearUserSession());
+          dispatch(clearAdminSession());
           return;
         }
 
@@ -41,13 +37,12 @@ function App() {
 
         const data = await response.json();
 
-        if (active && data.user) {
-          dispatch(
-            restoreUserSession({
-              token: userToken,
-              user: data.user,
-            }),
-          );
+        if (active && data.user?.role === "admin") {
+          dispatch(clearUserSession());
+          dispatch(setAdminSession({ admin: data.user }));
+        } else if (active && data.user) {
+          dispatch(clearAdminSession());
+          dispatch(restoreUserSession({ user: data.user }));
         }
       })
       .catch(() => {
@@ -57,7 +52,7 @@ function App() {
     return () => {
       active = false;
     };
-  }, [dispatch, userToken]);
+  }, [dispatch]);
 
   // Product loading state
   const renderContent = () => {

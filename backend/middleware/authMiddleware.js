@@ -2,18 +2,22 @@ const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
 
+const getCookieToken = (req) => {
+  const cookie = req.headers.cookie
+    ?.split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("stylekart_session="));
+
+  return cookie ? cookie.slice("stylekart_session=".length) : "";
+};
+
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Authentication token is required.",
-      });
-    }
-
-    const token = authHeader.slice(7).trim();
+    const bearerToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+    const token = bearerToken || getCookieToken(req);
 
     if (!token) {
       return res.status(401).json({

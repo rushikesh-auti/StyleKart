@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUserSession } from "../store/userAuthSlice";
+import { clearAdminSession } from "../store/adminAuthSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 const UserLogin = () => {
@@ -30,12 +31,25 @@ const UserLogin = () => {
     setError("");
 
     try {
+      const payload = isRegistering
+        ? {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword,
+          }
+        : {
+            email: formData.email,
+            password: formData.password,
+          };
+
       const response = await fetch(
         adminApiUrl(isRegistering ? "/auth/register" : "/auth/login"),
         {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(payload),
         },
       );
       const data = await response.json();
@@ -44,7 +58,8 @@ const UserLogin = () => {
         throw new Error(data.message || "Unable to authenticate");
       }
 
-      dispatch(setUserSession({ token: data.token, user: data.user }));
+      dispatch(clearAdminSession());
+      dispatch(setUserSession({ user: data.user }));
       navigate("/", { replace: true });
     } catch (requestError) {
       setError(requestError.message || "Unable to connect to the server");

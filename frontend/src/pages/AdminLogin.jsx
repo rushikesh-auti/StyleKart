@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setAdminSession } from "../store/adminAuthSlice";
+import { clearUserSession } from "../store/userAuthSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 const API_URL = adminApiUrl("/auth/admin/login");
@@ -38,6 +39,7 @@ const AdminLogin = () => {
     try {
       const response = await fetch(API_URL, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -53,12 +55,8 @@ const AdminLogin = () => {
         throw new Error(data.message || "Invalid email or password");
       }
 
-      // Make sure JWT token exists
-      if (!data.token) {
-        throw new Error("Authentication token was not received");
-      }
-
-      dispatch(setAdminSession({ token: data.token, admin: data.admin }));
+      dispatch(clearUserSession());
+      dispatch(setAdminSession({ admin: data.admin }));
 
       // Redirect to the admin dashboard
       navigate("/admin", {

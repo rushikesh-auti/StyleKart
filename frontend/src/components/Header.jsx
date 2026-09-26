@@ -10,6 +10,7 @@ import { FaSearch } from "react-icons/fa";
 import { searchActions } from "../store/searchSlice";
 import { clearUserSession } from "../store/userAuthSlice";
 import { clearAdminSession } from "../store/adminAuthSlice";
+import { adminApiUrl } from "../utils/adminApi";
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -43,11 +44,23 @@ const Header = () => {
   const closeMenu = () => undefined;
 
   const handleUserLogout = () => {
+    fetch(adminApiUrl("/auth/logout"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }).catch(() => undefined);
     dispatch(clearUserSession());
     closeMenu();
   };
 
   const handleAdminLogout = () => {
+    fetch(adminApiUrl("/auth/logout"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }).catch(() => undefined);
     dispatch(clearAdminSession());
     window.location.assign("/admin/login");
   };

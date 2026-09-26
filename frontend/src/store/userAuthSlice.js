@@ -1,24 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const storedUser = localStorage.getItem("user");
-const storedToken = localStorage.getItem("userToken");
+localStorage.removeItem("userToken");
 
 const userAuthSlice = createSlice({
   name: "userAuth",
   initialState: {
     user: storedUser ? JSON.parse(storedUser) : null,
-    token: storedToken,
-    isAuthenticated: Boolean(storedToken),
+    isAuthenticated: Boolean(storedUser),
   },
   reducers: {
     setUserSession: (state, action) => {
-      const { token, user } = action.payload;
-
-      state.token = token;
+      const { user } = action.payload;
       state.user = user;
       state.isAuthenticated = true;
 
-      localStorage.setItem("userToken", token);
       localStorage.setItem("user", JSON.stringify(user));
     },
 
@@ -28,7 +24,6 @@ const userAuthSlice = createSlice({
     },
 
     clearUserSession: (state) => {
-      state.token = null;
       state.user = null;
       state.isAuthenticated = false;
 
@@ -37,10 +32,10 @@ const userAuthSlice = createSlice({
     },
 
     restoreUserSession: (state, action) => {
-      state.token = action.payload.token;
       state.user = action.payload.user;
       state.isAuthenticated = true;
 
+      localStorage.removeItem("userToken");
       localStorage.setItem(
         "user",
         JSON.stringify(action.payload.user),
