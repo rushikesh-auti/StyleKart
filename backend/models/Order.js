@@ -21,7 +21,6 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true,
     },
     items: {
       type: [orderItemSchema],
@@ -84,6 +83,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ user: 1, orderStatus: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
 

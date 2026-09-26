@@ -110,5 +110,28 @@ productSchema.index({
   current_price: 1,
   discount_percentage: -1,
 });
+productSchema.index({ category: 1, createdAt: -1 });
+productSchema.index({ category: 1, "rating.stars": -1, "rating.count": -1 });
+productSchema.index({ category: 1, stock: 1 });
+productSchema.index({ category: 1, sizes: 1, current_price: 1 });
+productSchema.index({ category: 1, colors: 1, current_price: 1 });
+productSchema.index({ current_price: 1 });
+productSchema.index({ discount_percentage: -1 });
+productSchema.index({ stock: 1 });
+productSchema.index({ brand: 1 });
+productSchema.index({ company: 1 });
+productSchema.index(
+  {
+    item_name: "text",
+    company: "text",
+    brand: "text",
+    category: "text",
+    subcategory: "text",
+  },
+  {
+    name: "product_catalogue_text",
+    weights: { item_name: 10, brand: 5, company: 3, category: 2, subcategory: 2 },
+  },
+);
 
 module.exports = mongoose.model("Product", productSchema);
