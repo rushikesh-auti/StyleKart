@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { RouterProvider, createHashRouter } from "react-router-dom";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 
 import styleKartStore from "./store/index.js";
@@ -43,7 +43,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
 import CustomerOnlyRoute from "./components/CustomerOnlyRoute.jsx";
 
-const router = createHashRouter([
+const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
