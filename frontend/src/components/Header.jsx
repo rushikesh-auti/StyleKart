@@ -54,15 +54,20 @@ const Header = () => {
     closeMenu();
   };
 
-  const handleAdminLogout = () => {
-    fetch(adminApiUrl("/auth/logout"), {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    }).catch(() => undefined);
+  const handleAdminLogout = async () => {
+    try {
+      await fetch(adminApiUrl("/auth/logout"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+    } catch {
+      // Clear the local UI session even when the network is unavailable.
+    }
+
     dispatch(clearAdminSession());
-    window.location.assign("/admin/login");
+    navigate("/admin/login", { replace: true });
   };
 
   return (
