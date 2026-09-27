@@ -11,6 +11,7 @@ import { clearUserSession, restoreUserSession } from "../store/userAuthSlice";
 import { clearAdminSession, setAdminSession } from "../store/adminAuthSlice";
 
 import { fetchStatusActions } from "../store/fetchStatusSlice";
+import { bagActions } from "../store/bagSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         if (response.status === 401) {
           dispatch(clearUserSession());
           dispatch(clearAdminSession());
+          dispatch(bagActions.resetBag());
           return;
         }
 
@@ -39,10 +41,12 @@ function App() {
 
         if (active && data.user?.role === "admin") {
           dispatch(clearUserSession());
+          dispatch(bagActions.resetBag());
           dispatch(setAdminSession({ admin: data.user }));
         } else if (active && data.user) {
           dispatch(clearAdminSession());
           dispatch(restoreUserSession({ user: data.user }));
+          dispatch(bagActions.loadUserCart());
         }
       })
       .catch(() => {
@@ -63,15 +67,15 @@ function App() {
     // Product API error state
     if (fetchStatus.error) {
       return (
-        <main className="container py-5">
-          <div className="text-center py-5">
+        <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="px-4 py-12 text-center text-slate-500">
             <h2 className="mb-3">Unable to load products</h2>
 
-            <p className="text-muted mb-4">{fetchStatus.error}</p>
+            <p className="mb-6 text-slate-500">{fetchStatus.error}</p>
 
             <button
               type="button"
-              className="btn btn-dark"
+              className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-brand-600"
               onClick={() => dispatch(fetchStatusActions.resetFetchStatus())}
             >
               Try Again

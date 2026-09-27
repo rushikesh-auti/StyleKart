@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setAdminSession } from "../store/adminAuthSlice";
 import { clearUserSession } from "../store/userAuthSlice";
+import { bagActions } from "../store/bagSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 const API_URL = adminApiUrl("/auth/admin/login");
@@ -56,6 +57,7 @@ const AdminLogin = () => {
       }
 
       dispatch(clearUserSession());
+      dispatch(bagActions.resetBag());
       dispatch(setAdminSession({ admin: data.admin }));
 
       // Redirect to the admin dashboard
@@ -72,20 +74,23 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="container mt-5 mb-5">
-      <div className="row justify-content-center">
-        <div className="col-12 col-sm-10 col-md-6 col-lg-5">
-          <div className="card shadow-sm border-0">
-            <div className="card-body p-4 p-md-5">
+    <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-xl">
+        <div className="w-full">
+          <div className="rounded-3xl border border-slate-200 bg-white shadow-soft">
+            <div className="p-6 sm:p-8">
               <h2 className="text-center mb-2">Admin Login</h2>
 
-              <p className="text-center text-muted mb-4">
+              <p className="mb-6 text-center text-sm text-slate-500">
                 Login to manage StyleKart products
               </p>
 
               {/* Error Message */}
               {error && (
-                <div className="alert alert-danger" role="alert">
+                <div
+                  className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+                  role="alert"
+                >
                   {error}
                 </div>
               )}
@@ -93,7 +98,10 @@ const AdminLogin = () => {
               <form onSubmit={handleSubmit}>
                 {/* Email */}
                 <div className="mb-3">
-                  <label htmlFor="email" className="form-label">
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-sm font-bold text-slate-700"
+                  >
                     Email
                   </label>
 
@@ -101,7 +109,7 @@ const AdminLogin = () => {
                     id="email"
                     type="email"
                     name="email"
-                    className="form-control"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                     placeholder="admin@stylekart.com"
                     value={formData.email}
                     onChange={handleChange}
@@ -113,7 +121,10 @@ const AdminLogin = () => {
 
                 {/* Password */}
                 <div className="mb-4">
-                  <label htmlFor="password" className="form-label">
+                  <label
+                    htmlFor="password"
+                    className="mb-2 block text-sm font-bold text-slate-700"
+                  >
                     Password
                   </label>
 
@@ -121,7 +132,7 @@ const AdminLogin = () => {
                     id="password"
                     type="password"
                     name="password"
-                    className="form-control"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                     placeholder="Enter your password"
                     value={formData.password}
                     onChange={handleChange}
@@ -134,13 +145,13 @@ const AdminLogin = () => {
                 {/* Login Button */}
                 <button
                   type="submit"
-                  className="btn btn-primary w-100"
+                  className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white transition hover:bg-brand-700 disabled:opacity-60"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
                       <span
-                        className="spinner-border spinner-border-sm me-2"
+                        className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
                         role="status"
                         aria-hidden="true"
                       ></span>

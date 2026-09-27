@@ -68,30 +68,40 @@ const AdminProducts = () => {
 
   if (loading) {
     return (
-      <main className="container py-5 text-center">
-        <h1 className="h4">Loading products...</h1>
+      <main className="mx-auto w-full max-w-7xl px-4 py-12 text-center sm:px-6 lg:px-8">
+        <h1 className="text-xl font-black text-slate-950">
+          Loading products...
+        </h1>
       </main>
     );
   }
 
   return (
-    <main className="container-fluid py-5 px-4">
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <main className="mx-auto w-full max-w-screen-2xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="h2 fw-bold mb-1">Admin Product Management</h1>
-          <p className="text-muted mb-0">Manage StyleKart products</p>
+          <h1 className="mb-1 text-3xl font-black tracking-[-0.03em] text-slate-950">
+            Admin Product Management
+          </h1>
+          <p className="text-slate-500">Manage StyleKart products</p>
         </div>
 
-        <div className="d-flex gap-2">
-          <Link to="/admin" className="btn btn-outline-secondary">
+        <div className="flex gap-2">
+          <Link
+            to="/admin"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50"
+          >
             Dashboard
           </Link>
-          <Link to="/admin/products/add" className="btn btn-primary">
+          <Link
+            to="/admin/products/add"
+            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-brand-700"
+          >
             Add Product
           </Link>
           <button
             type="button"
-            className="btn btn-outline-danger"
+            className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-600 hover:bg-rose-50"
             onClick={handleLogout}
           >
             Logout
@@ -99,13 +109,21 @@ const AdminProducts = () => {
         </div>
       </div>
 
-      {message && <div className="alert alert-success">{message}</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {message && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+          {message}
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+          {error}
+        </div>
+      )}
 
-      <div className="card shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead className="table-dark">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm [&_td]:px-4 [&_td]:py-3 [&_tbody_tr]:border-b [&_tbody_tr]:border-slate-100">
+            <thead className="bg-slate-950 text-left text-xs uppercase tracking-wider text-white [&_th]:px-4 [&_th]:py-3">
               <tr>
                 <th>Image</th>
                 <th>ID</th>
@@ -119,7 +137,10 @@ const AdminProducts = () => {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-5">
+                  <td
+                    colSpan="7"
+                    className="px-4 py-12 text-center text-slate-500"
+                  >
                     No products found.
                   </td>
                 </tr>
@@ -132,7 +153,7 @@ const AdminProducts = () => {
                         alt={product.item_name}
                         width="60"
                         height="75"
-                        style={{ objectFit: "cover", borderRadius: "6px" }}
+                        className="h-[75px] w-[60px] rounded-lg object-cover"
                       />
                     </td>
                     <td>
@@ -141,17 +162,19 @@ const AdminProducts = () => {
                     <td>
                       <strong>{product.company}</strong>
                       <br />
-                      <small className="text-muted">{product.item_name}</small>
+                      <small className="text-slate-500">
+                        {product.item_name}
+                      </small>
                     </td>
                     <td>
-                      <span className="badge text-bg-secondary">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
                         {product.category}
                       </span>
                     </td>
                     <td>
                       <strong>Rs. {product.current_price}</strong>
                       <br />
-                      <small className="text-muted text-decoration-line-through">
+                      <small className="text-xs text-slate-400 line-through">
                         Rs. {product.original_price}
                       </small>
                     </td>
@@ -159,24 +182,24 @@ const AdminProducts = () => {
                       <span
                         className={
                           product.stock > 0
-                            ? "badge text-bg-success"
-                            : "badge text-bg-danger"
+                            ? "inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-black text-emerald-700"
+                            : "inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-black text-rose-700"
                         }
                       >
                         {product.stock}
                       </span>
                     </td>
                     <td>
-                      <div className="d-flex gap-2">
+                      <div className="flex gap-2">
                         <Link
                           to={`/admin/products/edit/${product.id}`}
-                          className="btn btn-sm btn-warning"
+                          className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-800 hover:bg-amber-200"
                         >
                           Edit
                         </Link>
                         <button
                           type="button"
-                          className="btn btn-sm btn-danger"
+                          className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-black text-white hover:bg-rose-700"
                           onClick={() => handleDelete(product.id)}
                         >
                           Delete
@@ -191,7 +214,7 @@ const AdminProducts = () => {
         </div>
       </div>
 
-      <p className="mt-3 text-muted">
+      <p className="mt-4 text-sm text-slate-500">
         Total Products: <strong>{products.length}</strong>
       </p>
     </main>

@@ -25,22 +25,28 @@ const ProductForm = ({
   };
 
   return (
-    <form onSubmit={onSubmit} className="product-form">
+    <form onSubmit={onSubmit} className="grid gap-5">
       {error && (
-        <div className="alert alert-danger" role="alert">
+        <div
+          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+          role="alert"
+        >
           {error}
         </div>
       )}
 
-      <div className="row g-3">
+      <div className="grid gap-4 md:grid-cols-12">
         {/* Basic Information */}
-        <div className="col-12">
+        <div className="md:col-span-12">
           <h5 className="mb-1">Basic Information</h5>
           <hr />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="item_name" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="item_name"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Product Name *
           </label>
 
@@ -50,14 +56,17 @@ const ProductForm = ({
             name="item_name"
             value={formData.item_name}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="Enter product name"
             required
           />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="company" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="company"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Company *
           </label>
 
@@ -67,14 +76,17 @@ const ProductForm = ({
             name="company"
             value={formData.company}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="Enter company"
             required
           />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="brand" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="brand"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Brand
           </label>
 
@@ -84,13 +96,16 @@ const ProductForm = ({
             name="brand"
             value={formData.brand}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="Enter brand"
           />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="subcategory" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="subcategory"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Subcategory
           </label>
 
@@ -100,13 +115,16 @@ const ProductForm = ({
             name="subcategory"
             value={formData.subcategory}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="e.g. T-Shirts"
           />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="category" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="category"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Category *
           </label>
 
@@ -115,7 +133,7 @@ const ProductForm = ({
             name="category"
             value={formData.category}
             onChange={onChange}
-            className="form-select"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             required
           >
             <option value="">Select category</option>
@@ -128,8 +146,11 @@ const ProductForm = ({
           </select>
         </div>
 
-        <div className="col-12">
-          <label htmlFor="description" className="form-label">
+        <div className="md:col-span-12">
+          <label
+            htmlFor="description"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Description
           </label>
 
@@ -138,20 +159,25 @@ const ProductForm = ({
             name="description"
             value={formData.description}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             rows="4"
             placeholder="Enter product description"
           />
         </div>
 
         {/* Image */}
-        <div className="col-12">
-          <h5 className="mb-1 mt-3">Product Image</h5>
+        <div className="md:col-span-12">
+          <h5 className="mb-1 mt-5 text-sm font-black text-slate-950">
+            Product Image
+          </h5>
           <hr />
         </div>
 
-        <div className="col-12">
-          <label htmlFor="image" className="form-label">
+        <div className="md:col-span-12">
+          <label
+            htmlFor="image"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Image Path or URL *
           </label>
 
@@ -161,16 +187,16 @@ const ProductForm = ({
             name="image"
             value={formData.image}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="images/product.jpg or https://example.com/product.jpg"
             required
           />
         </div>
 
         {formData.image && (
-          <div className="col-12">
-            <div className="border rounded p-3">
-              <p className="small text-muted mb-2">Image Preview</p>
+          <div className="md:col-span-12">
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="mb-2 text-xs text-slate-500">Image Preview</p>
 
               <img
                 src={
@@ -179,14 +205,9 @@ const ProductForm = ({
                     : `/${formData.image.replace(/^\/+/, "")}`
                 }
                 alt="Product preview"
-                style={{
-                  width: "140px",
-                  height: "180px",
-                  objectFit: "cover",
-                  borderRadius: "6px",
-                }}
+                className="h-[180px] w-[140px] rounded-xl object-cover"
                 onError={(event) => {
-                  event.currentTarget.style.display = "none";
+                  event.currentTarget.classList.add("hidden");
                 }}
               />
             </div>
@@ -194,13 +215,18 @@ const ProductForm = ({
         )}
 
         {/* Pricing */}
-        <div className="col-12">
-          <h5 className="mb-1 mt-3">Pricing & Inventory</h5>
+        <div className="md:col-span-12">
+          <h5 className="mb-1 mt-5 text-sm font-black text-slate-950">
+            Pricing & Inventory
+          </h5>
           <hr />
         </div>
 
-        <div className="col-md-4">
-          <label htmlFor="original_price" className="form-label">
+        <div className="md:col-span-4">
+          <label
+            htmlFor="original_price"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Original Price *
           </label>
 
@@ -210,7 +236,7 @@ const ProductForm = ({
             name="original_price"
             value={formData.original_price}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
             step="0.01"
             placeholder="1999"
@@ -218,8 +244,11 @@ const ProductForm = ({
           />
         </div>
 
-        <div className="col-md-4">
-          <label htmlFor="current_price" className="form-label">
+        <div className="md:col-span-4">
+          <label
+            htmlFor="current_price"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Current Price *
           </label>
 
@@ -229,7 +258,7 @@ const ProductForm = ({
             name="current_price"
             value={formData.current_price}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
             step="0.01"
             placeholder="999"
@@ -237,8 +266,11 @@ const ProductForm = ({
           />
         </div>
 
-        <div className="col-md-4">
-          <label htmlFor="discount_percentage" className="form-label">
+        <div className="md:col-span-4">
+          <label
+            htmlFor="discount_percentage"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Discount (%)
           </label>
 
@@ -248,7 +280,7 @@ const ProductForm = ({
             name="discount_percentage"
             value={formData.discount_percentage}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
             max="100"
             step="1"
@@ -256,8 +288,11 @@ const ProductForm = ({
           />
         </div>
 
-        <div className="col-md-4">
-          <label htmlFor="stock" className="form-label">
+        <div className="md:col-span-4">
+          <label
+            htmlFor="stock"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Stock *
           </label>
 
@@ -267,15 +302,18 @@ const ProductForm = ({
             name="stock"
             value={formData.stock}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
             step="1"
             required
           />
         </div>
 
-        <div className="col-md-4">
-          <label htmlFor="return_period" className="form-label">
+        <div className="md:col-span-4">
+          <label
+            htmlFor="return_period"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Return Period (days)
           </label>
 
@@ -285,13 +323,16 @@ const ProductForm = ({
             name="return_period"
             value={formData.return_period}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
           />
         </div>
 
-        <div className="col-md-4">
-          <label htmlFor="delivery_date" className="form-label">
+        <div className="md:col-span-4">
+          <label
+            htmlFor="delivery_date"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Delivery Date
           </label>
 
@@ -301,19 +342,24 @@ const ProductForm = ({
             name="delivery_date"
             value={formData.delivery_date}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="e.g. 25 Sep 2026"
           />
         </div>
 
         {/* Variants */}
-        <div className="col-12">
-          <h5 className="mb-1 mt-3">Variants</h5>
+        <div className="md:col-span-12">
+          <h5 className="mb-1 mt-5 text-sm font-black text-slate-950">
+            Variants
+          </h5>
           <hr />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="sizes" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="sizes"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Sizes
           </label>
 
@@ -323,15 +369,20 @@ const ProductForm = ({
             name="sizes"
             value={formData.sizes.join(", ")}
             onChange={handleArrayChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="S, M, L, XL"
           />
 
-          <div className="form-text">Separate sizes with commas.</div>
+          <div className="mt-1 text-xs text-slate-500">
+            Separate sizes with commas.
+          </div>
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="colors" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="colors"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Colors
           </label>
 
@@ -341,21 +392,28 @@ const ProductForm = ({
             name="colors"
             value={formData.colors.join(", ")}
             onChange={handleArrayChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="Black, White, Blue"
           />
 
-          <div className="form-text">Separate colors with commas.</div>
+          <div className="mt-1 text-xs text-slate-500">
+            Separate colors with commas.
+          </div>
         </div>
 
         {/* Rating */}
-        <div className="col-12">
-          <h5 className="mb-1 mt-3">Rating</h5>
+        <div className="md:col-span-12">
+          <h5 className="mb-1 mt-5 text-sm font-black text-slate-950">
+            Rating
+          </h5>
           <hr />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="ratingStars" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="ratingStars"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Rating Stars
           </label>
 
@@ -365,15 +423,18 @@ const ProductForm = ({
             name="ratingStars"
             value={formData.rating.stars}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
             max="5"
             step="0.1"
           />
         </div>
 
-        <div className="col-md-6">
-          <label htmlFor="ratingCount" className="form-label">
+        <div className="md:col-span-6">
+          <label
+            htmlFor="ratingCount"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
             Rating Count
           </label>
 
@@ -383,20 +444,20 @@ const ProductForm = ({
             name="ratingCount"
             value={formData.rating.count}
             onChange={onChange}
-            className="form-control"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             min="0"
             step="1"
           />
         </div>
 
         {/* Submit */}
-        <div className="col-12">
+        <div className="md:col-span-12">
           <hr className="mt-4" />
 
-          <div className="d-flex gap-2 justify-content-end">
+          <div className="flex justify-end gap-2">
             <button
               type="submit"
-              className="btn btn-dark px-4"
+              className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white transition hover:bg-brand-600"
               disabled={loading}
             >
               {loading ? "Saving..." : submitText}

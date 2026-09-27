@@ -38,11 +38,7 @@ const FetchItems = () => {
     };
 
     fetchInitialProducts();
-  }, [
-    dispatch,
-    fetchStatus.currentlyFetching,
-    fetchStatus.fetchDone,
-  ]);
+  }, [dispatch, fetchStatus.currentlyFetching, fetchStatus.fetchDone]);
 
   return null;
 };

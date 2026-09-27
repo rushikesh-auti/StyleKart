@@ -1,15 +1,11 @@
-const LoadingSpinner = () => {
-  return (
-    <div className="d-flex justify-content-center spinner">
-      <div
-        className="spinner-border"
-        role="status"
-        style={{ width: "5rem", height: "5rem" }}
-      >
-        <span className="visually-hidden">Loading...</span>
-      </div>
+const LoadingSpinner = () => (
+  <div className="grid min-h-[45vh] place-items-center px-4">
+    <div className="text-center">
+      <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600" />
+      <p className="mt-4 text-sm font-semibold text-slate-500">
+        Loading StyleKart…
+      </p>
     </div>
-  );
-};
-
+  </div>
+);
 export default LoadingSpinner;

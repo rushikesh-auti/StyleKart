@@ -81,16 +81,16 @@ const AddProduct = () => {
   };
 
   return (
-    <main className="container py-4">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-4">
         <h1 className="mb-1">Add Product</h1>
-        <p className="text-muted mb-0">
+        <p className="text-slate-500">
           Add a new product to your StyleKart catalog.
         </p>
       </div>
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-body p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-5 sm:p-6">
           <ProductForm
             formData={formData}
             onChange={handleChange}

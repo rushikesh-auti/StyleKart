@@ -6,7 +6,6 @@ import { Provider } from "react-redux";
 import styleKartStore from "./store/index.js";
 
 import "./index.css";
-import "bootstrap/dist/css/bootstrap.min.css";
 
 import App from "./routes/App.jsx";
 
@@ -87,10 +86,6 @@ const router = createBrowserRouter([
             path: "/wishlist",
             element: <Wishlist />,
           },
-          {
-            path: "/bag",
-            element: <Bag />,
-          },
         ],
       },
       {
@@ -105,6 +100,10 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute />,
         children: [
+          {
+            path: "/bag",
+            element: <Bag />,
+          },
           {
             path: "/profile",
             element: <Profile />,

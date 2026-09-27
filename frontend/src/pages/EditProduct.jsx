@@ -149,7 +149,7 @@ function EditProduct() {
       if (!response.ok) {
         throw new Error(
           data.message ||
-            `Unable to update product (server returned ${response.status}).`
+            `Unable to update product (server returned ${response.status}).`,
         );
       }
 
@@ -163,14 +163,14 @@ function EditProduct() {
 
   if (loading) {
     return (
-      <main className="container py-5">
+      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="text-center">
           <div
-            className="spinner-border"
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600"
             role="status"
             aria-label="Loading product"
           />
-          <p className="text-muted mt-3">Loading product...</p>
+          <p className="mt-3 text-sm text-slate-500">Loading product...</p>
         </div>
       </main>
     );
@@ -178,14 +178,17 @@ function EditProduct() {
 
   if (error && !formData.item_name) {
     return (
-      <main className="container py-5">
-        <div className="alert alert-danger" role="alert">
+      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div
+          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
+          role="alert"
+        >
           {error}
         </div>
 
         <button
           type="button"
-          className="btn btn-dark"
+          className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white transition hover:bg-brand-600"
           onClick={() => navigate("/admin/products")}
         >
           Back to Products
@@ -195,16 +198,16 @@ function EditProduct() {
   }
 
   return (
-    <main className="container py-4">
+    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-4">
         <h1 className="mb-1">Edit Product</h1>
-        <p className="text-muted mb-0">
+        <p className="text-slate-500">
           Update the details of your StyleKart product.
         </p>
       </div>
 
-      <div className="card border-0 shadow-sm">
-        <div className="card-body p-4">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-5 sm:p-6">
           <ProductForm
             formData={formData}
             onChange={handleChange}

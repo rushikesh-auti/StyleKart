@@ -3,8 +3,6 @@ import { useSearchParams } from "react-router-dom";
 
 import HomeItem from "../components/HomeItem";
 import { getProducts } from "../utils/productApi";
-import "../styles/home.css";
-import "../styles/productListing.css";
 
 const defaultFilters = {
   category: "",
@@ -121,10 +119,12 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
   };
 
   return (
-    <main className="product-listing-page">
-      <section className="product-listing-header">
+    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <section className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-[-0.035em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl [&>div>p:last-child]:mt-2 [&>div>p:last-child]:text-sm [&>div>p:last-child]:text-slate-500">
         <div>
-          <p className="home-eyebrow">StyleKart catalogue</p>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+            StyleKart catalogue
+          </p>
           <h1>{title}</h1>
           <p>
             {pagination
@@ -135,7 +135,7 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
           </p>
         </div>
 
-        <div className="product-listing-sort">
+        <div className="flex items-center gap-3 [&_label]:text-xs [&_label]:font-black [&_label]:text-slate-600 [&_select]:min-w-[180px] [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:bg-white [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-sm">
           <label htmlFor="sort-products">Sort by</label>
           <select
             id="sort-products"
@@ -155,9 +155,9 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
         </div>
       </section>
 
-      <section className="product-listing-layout">
-        <aside className="product-filters">
-          <div className="product-filters-heading">
+      <section className="grid items-start gap-7 lg:grid-cols-[250px_minmax(0,1fr)]">
+        <aside className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:sticky lg:top-24 lg:grid-cols-1 [&_label]:text-xs [&_label]:font-black [&_label]:text-slate-600 [&_input]:w-full [&_input]:rounded-xl [&_input]:border [&_input]:border-slate-300 [&_input]:px-3 [&_input]:py-2.5 [&_select]:w-full [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:px-3 [&_select]:py-2.5">
+          <div className="col-span-full mb-1 flex items-center justify-between [&_h2]:text-lg [&_h2]:font-black [&_h2]:text-slate-950 [&_button]:bg-transparent [&_button]:text-xs [&_button]:font-black [&_button]:text-brand-700">
             <h2>Filters</h2>
             <button type="button" onClick={clearFilters}>
               Clear all
@@ -196,7 +196,7 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
             onChange={updateFilter}
           />
 
-          <div className="product-filter-price-row">
+          <div className="grid grid-cols-2 gap-2 [&_div]:grid [&_div]:gap-2">
             <div>
               <label htmlFor="filter-min-price">Min price</label>
               <input
@@ -282,22 +282,25 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
           </select>
         </aside>
 
-        <section className="product-listing-results">
+        <section className="min-w-0">
           {loading && (
-            <div className="product-listing-skeletons">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-5">
               {Array.from({ length: 8 }, (_, index) => (
-                <div className="product-listing-skeleton" key={index} />
+                <div
+                  className="min-h-[300px] animate-pulse rounded-2xl bg-slate-200 sm:min-h-[390px]"
+                  key={index}
+                />
               ))}
             </div>
           )}
 
           {!loading && error && (
-            <div className="home-empty-state">
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-950 [&_h3]:text-xl [&_h3]:font-black [&_h3]:text-slate-950 [&_p]:mt-2 [&_p]:text-sm [&_p]:text-slate-500">
               <h2>Something went wrong</h2>
               <p>{error}</p>
               <button
                 type="button"
-                className="product-listing-retry"
+                className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-600"
                 onClick={() => setPage((currentPage) => currentPage)}
               >
                 Try Again
@@ -306,12 +309,12 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
           )}
 
           {!loading && !error && products.length === 0 && (
-            <div className="home-empty-state">
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-950 [&_h3]:text-xl [&_h3]:font-black [&_h3]:text-slate-950 [&_p]:mt-2 [&_p]:text-sm [&_p]:text-slate-500">
               <h2>No products found</h2>
               <p>Try changing your filters or search terms.</p>
               <button
                 type="button"
-                className="product-listing-retry"
+                className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-600"
                 onClick={clearFilters}
               >
                 Clear Filters
@@ -321,14 +324,17 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
 
           {!loading && !error && products.length > 0 && (
             <>
-              <div className="home-product-grid">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
                 {products.map((item) => (
                   <HomeItem key={item.id} item={item} />
                 ))}
               </div>
 
               {pagination?.totalPages > 1 && (
-                <nav className="product-pagination" aria-label="Product pages">
+                <nav
+                  className="mt-10 flex items-center justify-center gap-3 [&_button]:rounded-xl [&_button]:bg-slate-950 [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-sm [&_button]:font-black [&_button]:text-white [&_button:disabled]:bg-slate-100 [&_button:disabled]:text-slate-400 [&_span]:text-sm [&_span]:font-bold [&_span]:text-slate-500"
+                  aria-label="Product pages"
+                >
                   <button
                     type="button"
                     disabled={!pagination.hasPreviousPage}

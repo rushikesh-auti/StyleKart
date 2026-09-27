@@ -71,29 +71,42 @@ const AdminCoupons = () => {
   };
 
   return (
-    <main className="container py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-muted mb-1">Admin operations</p>
-          <h1 className="h3 mb-0">Coupons</h1>
+          <p className="mb-1 text-sm font-semibold text-slate-500">
+            Admin operations
+          </p>
+          <h1 className="text-2xl font-black text-slate-950">Coupons</h1>
         </div>
-        <Link to="/admin" className="btn btn-outline-dark">
+        <Link
+          to="/admin"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:border-slate-950 hover:bg-slate-950 hover:text-white"
+        >
           Back to dashboard
         </Link>
       </div>
-      {error && <div className="alert alert-danger">{error}</div>}
-      {message && <div className="alert alert-success">{message}</div>}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+          {error}
+        </div>
+      )}
+      {message && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+          {message}
+        </div>
+      )}
       <form
-        className="card border-0 shadow-sm p-4 mb-4"
+        className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
         onSubmit={createCoupon}
       >
-        <h2 className="h5">Create coupon</h2>
-        <div className="row g-3">
-          <div className="col-md-3">
-            <label className="form-label">
+        <h2 className="text-lg font-black text-slate-950">Create coupon</h2>
+        <div className="grid gap-4 md:grid-cols-12">
+          <div className="md:col-span-3">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Code
               <input
-                className="form-control"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 name="code"
                 value={form.code}
                 onChange={updateForm}
@@ -101,11 +114,11 @@ const AdminCoupons = () => {
               />
             </label>
           </div>
-          <div className="col-md-3">
-            <label className="form-label">
+          <div className="md:col-span-3">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Minimum amount
               <input
-                className="form-control"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 type="number"
                 min="0"
                 name="minimumAmount"
@@ -114,11 +127,11 @@ const AdminCoupons = () => {
               />
             </label>
           </div>
-          <div className="col-md-2">
-            <label className="form-label">
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Type
               <select
-                className="form-select"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 name="discountType"
                 value={form.discountType}
                 onChange={updateForm}
@@ -128,11 +141,11 @@ const AdminCoupons = () => {
               </select>
             </label>
           </div>
-          <div className="col-md-2">
-            <label className="form-label">
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Discount
               <input
-                className="form-control"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 type="number"
                 min="1"
                 name="discountValue"
@@ -141,11 +154,11 @@ const AdminCoupons = () => {
               />
             </label>
           </div>
-          <div className="col-md-2">
-            <label className="form-label">
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Usage limit
               <input
-                className="form-control"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 type="number"
                 min="1"
                 name="usageLimit"
@@ -154,11 +167,11 @@ const AdminCoupons = () => {
               />
             </label>
           </div>
-          <div className="col-md-4">
-            <label className="form-label">
+          <div className="md:col-span-4">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Maximum discount
               <input
-                className="form-control"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 type="number"
                 min="0"
                 name="maximumDiscount"
@@ -167,11 +180,11 @@ const AdminCoupons = () => {
               />
             </label>
           </div>
-          <div className="col-md-4">
-            <label className="form-label">
+          <div className="md:col-span-4">
+            <label className="mb-2 block text-sm font-bold text-slate-700">
               Expiry date
               <input
-                className="form-control"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                 type="datetime-local"
                 name="expiryDate"
                 value={form.expiryDate}
@@ -181,19 +194,22 @@ const AdminCoupons = () => {
             </label>
           </div>
         </div>
-        <button className="btn btn-dark mt-4" type="submit">
+        <button
+          className="mt-4 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-600"
+          type="submit"
+        >
           Create coupon
         </button>
       </form>
-      <div className="list-group">
+      <div className="grid divide-y divide-slate-100 rounded-2xl border border-slate-200">
         {coupons.map((coupon) => (
           <div
-            className="list-group-item d-flex justify-content-between align-items-center gap-3"
+            className="flex items-center justify-between gap-3 bg-white px-4 py-3"
             key={coupon._id}
           >
             <div>
               <strong>{coupon.code}</strong>
-              <div className="text-muted small">
+              <div className="text-xs text-slate-500">
                 {coupon.discountType === "PERCENTAGE"
                   ? `${coupon.discountValue}%`
                   : `₹${coupon.discountValue}`}{" "}
@@ -203,14 +219,16 @@ const AdminCoupons = () => {
             </div>
             {coupon.active ? (
               <button
-                className="btn btn-sm btn-outline-danger"
+                className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-black text-rose-600 hover:bg-rose-50"
                 type="button"
                 onClick={() => deactivateCoupon(coupon._id)}
               >
                 Deactivate
               </button>
             ) : (
-              <span className="badge text-bg-secondary">Inactive</span>
+              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
+                Inactive
+              </span>
             )}
           </div>
         ))}

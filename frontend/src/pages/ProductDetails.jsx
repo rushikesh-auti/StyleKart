@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { FaStar } from "react-icons/fa";
 
@@ -13,12 +13,11 @@ import {
   addRecentlyViewedProduct,
   getRecentlyViewedProducts,
 } from "../utils/recentlyViewed";
-import "../styles/home.css";
-import "../styles/productDetails.css";
 
 const ProductDetails = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const bagItems = useSelector((store) => store.bag || []);
   const wishlistItems = useSelector((store) => store.wishlist || []);
@@ -163,7 +162,7 @@ const ProductDetails = () => {
 
   if (loading) {
     return (
-      <main className="product-details-status">
+      <main className="grid min-h-[50vh] place-items-center gap-4 px-4 text-center [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-slate-950 [&_a]:font-black [&_a]:text-brand-700">
         <h1>Loading product...</h1>
       </main>
     );
@@ -171,7 +170,7 @@ const ProductDetails = () => {
 
   if (error || !product) {
     return (
-      <main className="product-details-status">
+      <main className="grid min-h-[50vh] place-items-center gap-4 px-4 text-center [&_h1]:text-2xl [&_h1]:font-black [&_h1]:text-slate-950 [&_a]:font-black [&_a]:text-brand-700">
         <h1>{error || "Product not found"}</h1>
         <Link to="/products">Back to products</Link>
       </main>
@@ -187,6 +186,7 @@ const ProductDetails = () => {
   const isInWishlist = wishlistItems.includes(product.id);
   const isOutOfStock = product.stock <= 0;
   const needsSizeSelection = product.sizes?.length > 0;
+  const needsColorSelection = product.colors?.length > 0;
 
   const stockMessage = isOutOfStock
     ? "Out of stock"
@@ -201,8 +201,18 @@ const ProductDetails = () => {
   };
 
   const addToCart = () => {
+    if (!currentUser) {
+      navigate("/login", { state: { from: `/product/${product.id}` } });
+      return;
+    }
+
     if (needsSizeSelection && !selectedSize) {
       setSelectionError("Please select a size before adding to cart.");
+      return;
+    }
+
+    if (needsColorSelection && !selectedColor) {
+      setSelectionError("Please select a color before adding to cart.");
       return;
     }
 
@@ -272,19 +282,19 @@ const ProductDetails = () => {
   )}`;
 
   return (
-    <main className="product-details-page">
-      <section className="product-details-container">
-        <div className="product-gallery">
-          <div className="product-thumbnail-list">
+    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] lg:gap-12">
+        <div className="grid gap-4 sm:grid-cols-[80px_minmax(0,1fr)]">
+          <div className="order-2 flex gap-2 overflow-x-auto sm:order-none sm:flex-col">
             {galleryImages.map((image) => (
               <button
                 key={image}
                 type="button"
-                className={
+                className={`min-w-[64px] overflow-hidden rounded-xl border-2 bg-slate-100 p-0 sm:min-w-0 [&_img]:h-full [&_img]:w-full [&_img]:object-cover ${
                   selectedImage === image
-                    ? "product-thumbnail active"
-                    : "product-thumbnail"
-                }
+                    ? "border-brand-500"
+                    : "border-transparent"
+                }`}
                 onClick={() => setSelectedImage(image)}
                 aria-label={`View ${product.item_name}`}
               >
@@ -293,29 +303,29 @@ const ProductDetails = () => {
             ))}
           </div>
 
-          <div className="product-main-image-wrap">
+          <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-slate-100">
             <img
               src={imagePath}
               alt={product.item_name}
-              className="product-main-image"
+              className="h-full w-full object-cover"
             />
           </div>
         </div>
 
-        <div className="product-details-info">
-          <p className="product-details-brand">
+        <div className="[&_h1]:mt-2 [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-[-0.035em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl">
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
             {product.brand || product.company}
           </p>
 
           <h1>{product.item_name}</h1>
 
-          <div className="product-details-rating">
+          <div className="mt-3 flex items-center gap-2 text-sm text-slate-600 [&_svg]:text-amber-400">
             <FaStar />
             <strong>{product.rating?.stars?.toFixed(1) || "0.0"}</strong>
             <span>{product.rating?.count || 0} ratings</span>
           </div>
 
-          <div className="product-details-price">
+          <div className="mt-6 flex flex-wrap items-baseline gap-3 [&_strong]:text-3xl [&_strong]:font-black [&_strong]:text-slate-950 [&_span]:text-slate-400 [&_span]:line-through [&_em]:text-sm [&_em]:font-black [&_em]:not-italic [&_em]:text-emerald-700">
             <strong>₹{product.current_price?.toLocaleString("en-IN")}</strong>
 
             {product.original_price > product.current_price && (
@@ -328,38 +338,40 @@ const ProductDetails = () => {
           </div>
 
           <p
-            className={
+            className={`mt-2 text-sm font-black ${
               isOutOfStock
-                ? "product-stock-status out-of-stock"
+                ? "text-rose-600"
                 : product.stock <= 5
-                  ? "product-stock-status low-stock"
-                  : "product-stock-status"
-            }
+                  ? "text-amber-700"
+                  : "text-emerald-700"
+            }`}
           >
             {stockMessage}
           </p>
 
           {product.description && (
-            <p className="product-description">{product.description}</p>
+            <p className="mt-6 border-t border-slate-200 pt-5 text-sm leading-7 text-slate-600">
+              {product.description}
+            </p>
           )}
 
           {needsSizeSelection && (
-            <section className="product-option-group">
-              <div className="product-option-heading">
+            <section className="mt-6">
+              <div className="flex items-center justify-between gap-3 [&_h2]:text-sm [&_h2]:font-black [&_h2]:text-slate-950 [&_span]:text-xs [&_span]:text-slate-500">
                 <h2>Select size</h2>
                 <span>Required</span>
               </div>
 
-              <div className="product-size-options">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {product.sizes.map((size) => (
                   <button
                     key={size}
                     type="button"
-                    className={
+                    className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${
                       selectedSize === size
-                        ? "product-size-option active"
-                        : "product-size-option"
-                    }
+                        ? "border-brand-500 bg-brand-50 text-brand-700"
+                        : "border-slate-300 bg-white text-slate-900 hover:border-brand-300"
+                    }`}
                     onClick={() => {
                       setSelectedSize(size);
                       setSelectionError("");
@@ -373,22 +385,22 @@ const ProductDetails = () => {
           )}
 
           {product.colors?.length > 0 && (
-            <section className="product-option-group">
-              <div className="product-option-heading">
+            <section className="mt-6">
+              <div className="flex items-center justify-between gap-3 [&_h2]:text-sm [&_h2]:font-black [&_h2]:text-slate-950 [&_span]:text-xs [&_span]:text-slate-500">
                 <h2>Select color</h2>
-                <span>{selectedColor || "Optional"}</span>
+                <span>{selectedColor || "Required"}</span>
               </div>
 
-              <div className="product-color-options">
+              <div className="mt-3 flex flex-wrap gap-2">
                 {product.colors.map((color) => (
                   <button
                     key={color}
                     type="button"
-                    className={
+                    className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${
                       selectedColor === color
-                        ? "product-color-option active"
-                        : "product-color-option"
-                    }
+                        ? "border-brand-500 bg-brand-50 text-brand-700"
+                        : "border-slate-300 bg-white text-slate-900 hover:border-brand-300"
+                    }`}
                     onClick={() => setSelectedColor(color)}
                   >
                     {color}
@@ -398,13 +410,13 @@ const ProductDetails = () => {
             </section>
           )}
 
-          <section className="product-option-group">
-            <div className="product-option-heading">
+          <section className="mt-6">
+            <div className="flex items-center justify-between gap-3 [&_h2]:text-sm [&_h2]:font-black [&_h2]:text-slate-950 [&_span]:text-xs [&_span]:text-slate-500">
               <h2>Quantity</h2>
               <span>{product.stock} available</span>
             </div>
 
-            <div className="product-quantity-control">
+            <div className="mt-3 inline-flex items-center overflow-hidden rounded-xl border border-slate-300 [&_button]:grid [&_button]:h-10 [&_button]:w-11 [&_button]:place-items-center [&_button]:bg-white [&_button]:font-black [&_button]:text-slate-900 [&_span]:grid [&_span]:h-10 [&_span]:w-11 [&_span]:place-items-center [&_span]:border-x [&_span]:border-slate-300 [&_span]:font-black">
               <button
                 type="button"
                 disabled={quantity <= 1}
@@ -426,13 +438,15 @@ const ProductDetails = () => {
           </section>
 
           {selectionError && (
-            <p className="product-selection-error">{selectionError}</p>
+            <p className="mt-4 text-sm font-bold text-rose-600">
+              {selectionError}
+            </p>
           )}
 
-          <div className="product-details-actions">
+          <div className="mt-7 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
-              className="product-add-cart"
+              className="rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white hover:bg-brand-600 disabled:bg-slate-100 disabled:text-slate-400"
               disabled={isOutOfStock || isInBag}
               onClick={addToCart}
             >
@@ -445,14 +459,14 @@ const ProductDetails = () => {
 
             <button
               type="button"
-              className="product-add-wishlist"
+              className="rounded-xl border border-brand-300 bg-white px-5 py-3.5 text-sm font-black text-brand-700 hover:bg-brand-50"
               onClick={toggleWishlist}
             >
               {isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
             </button>
           </div>
 
-          <section className="product-information-card">
+          <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-black [&_h2]:text-slate-950 [&_p]:my-2 [&_p]:text-sm [&_p]:text-slate-600">
             <h2>Product information</h2>
             <p>
               <strong>Category:</strong> {product.category}
@@ -470,10 +484,12 @@ const ProductDetails = () => {
         </div>
       </section>
 
-      <section className="product-reviews-section">
-        <div className="product-reviews-heading">
+      <section className="mt-10 border-t border-slate-200 pt-8">
+        <div className="flex items-center justify-between gap-4 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:text-slate-950 [&_a]:font-bold [&_a]:text-brand-700">
           <div>
-            <p className="home-eyebrow">Verified customer feedback</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+              Verified customer feedback
+            </p>
             <h2>Reviews ({reviews.length})</h2>
           </div>
           {!currentUser && (
@@ -482,11 +498,14 @@ const ProductDetails = () => {
         </div>
 
         {currentUser && (
-          <form className="review-form" onSubmit={submitReview}>
+          <form
+            className="my-6 grid max-w-3xl gap-4 rounded-2xl border border-slate-200 bg-white p-5 [&_h3]:font-black [&_h3]:text-slate-950 [&_label]:grid [&_label]:gap-2 [&_label]:text-sm [&_label]:font-bold [&_label]:text-slate-700 [&_input]:rounded-xl [&_input]:border [&_input]:border-slate-300 [&_input]:px-3 [&_input]:py-2.5 [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:px-3 [&_select]:py-2.5 [&_textarea]:min-h-24 [&_textarea]:rounded-xl [&_textarea]:border [&_textarea]:border-slate-300 [&_textarea]:px-3 [&_textarea]:py-2.5"
+            onSubmit={submitReview}
+          >
             <h3>
               {editingReviewId ? "Edit your review" : "Review this product"}
             </h3>
-            <div className="review-form-row">
+            <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
               <label>
                 Rating
                 <select
@@ -530,7 +549,7 @@ const ProductDetails = () => {
             </label>
             <button
               type="submit"
-              className="product-review-submit"
+              className="w-fit rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-600"
               disabled={reviewSubmitting}
             >
               {reviewSubmitting
@@ -542,7 +561,7 @@ const ProductDetails = () => {
             {editingReviewId && (
               <button
                 type="button"
-                className="product-review-cancel"
+                className="ml-2 w-fit bg-transparent text-sm font-black text-brand-700"
                 onClick={() => {
                   setEditingReviewId("");
                   setReviewForm({ rating: 5, title: "", comment: "" });
@@ -555,13 +574,16 @@ const ProductDetails = () => {
         )}
 
         {reviewError && (
-          <p className="product-selection-error">{reviewError}</p>
+          <p className="mt-4 text-sm font-bold text-rose-600">{reviewError}</p>
         )}
-        <div className="product-review-list">
+        <div className="grid max-w-3xl gap-3">
           {reviews.length === 0 && <p>No reviews yet.</p>}
           {reviews.map((review) => (
-            <article className="product-review" key={review._id}>
-              <div className="product-review-meta">
+            <article
+              className="border-b border-slate-200 py-4 [&_p]:my-2 [&_p]:text-sm [&_p]:leading-6 [&_p]:text-slate-600 [&_button]:mr-3 [&_button]:text-sm [&_button]:font-black [&_button]:text-brand-700"
+              key={review._id}
+            >
+              <div className="flex items-center justify-between gap-3 [&_strong]:text-slate-950 [&_span]:text-sm [&_span]:text-slate-500">
                 <strong>{review.title}</strong>
                 <span>
                   {review.rating}/5 · {review.user?.name || "Verified customer"}
@@ -597,13 +619,15 @@ const ProductDetails = () => {
       </section>
 
       {relatedProducts.length > 0 && (
-        <section className="product-recommendation-section">
+        <section className="mx-auto mt-16 w-full max-w-7xl px-4 sm:px-6 lg:px-8 [&_h2]:mb-6 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:text-slate-950">
           <div>
-            <p className="home-eyebrow">You may also like</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+              You may also like
+            </p>
             <h2>Related products</h2>
           </div>
 
-          <div className="home-product-grid">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
             {relatedProducts.map((item) => (
               <HomeItem key={item.id} item={item} />
             ))}
@@ -612,13 +636,15 @@ const ProductDetails = () => {
       )}
 
       {recentlyViewedProducts.length > 0 && (
-        <section className="product-recommendation-section">
+        <section className="mx-auto mt-16 w-full max-w-7xl px-4 sm:px-6 lg:px-8 [&_h2]:mb-6 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:text-slate-950">
           <div>
-            <p className="home-eyebrow">Continue exploring</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+              Continue exploring
+            </p>
             <h2>Recently viewed</h2>
           </div>
 
-          <div className="home-product-grid">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
             {recentlyViewedProducts.slice(0, 4).map((item) => (
               <HomeItem key={item.id} item={item} />
             ))}

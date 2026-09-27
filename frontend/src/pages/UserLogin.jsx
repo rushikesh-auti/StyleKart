@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { setUserSession } from "../store/userAuthSlice";
 import { clearAdminSession } from "../store/adminAuthSlice";
+import { bagActions } from "../store/bagSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 const UserLogin = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -60,7 +62,9 @@ const UserLogin = () => {
 
       dispatch(clearAdminSession());
       dispatch(setUserSession({ user: data.user }));
-      navigate("/", { replace: true });
+      await dispatch(bagActions.loadUserCart());
+      const destination = location.state?.from || "/";
+      navigate(destination, { replace: true });
     } catch (requestError) {
       setError(requestError.message || "Unable to connect to the server");
     } finally {
@@ -69,30 +73,37 @@ const UserLogin = () => {
   };
 
   return (
-    <main className="container py-5">
-      <div className="row justify-content-center">
-        <div className="col-12 col-sm-10 col-md-6 col-lg-5">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body p-4 p-md-5">
-              <h1 className="h3 mb-2">
+    <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-xl">
+        <div className="w-full">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="p-6 sm:p-8">
+              <h1 className="mb-2 text-2xl font-black text-slate-950">
                 {isRegistering ? "Create your account" : "Welcome back"}
               </h1>
-              <p className="text-muted mb-4">
+              <p className="mb-6 text-slate-500">
                 {isRegistering
                   ? "Join StyleKart and start shopping."
                   : "Sign in to continue shopping."}
               </p>
 
-              {error && <div className="alert alert-danger">{error}</div>}
+              {error && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+                  {error}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit}>
                 {isRegistering && (
                   <div className="mb-3">
-                    <label className="form-label" htmlFor="name">
+                    <label
+                      className="mb-2 block text-sm font-bold text-slate-700"
+                      htmlFor="name"
+                    >
                       Name
                     </label>
                     <input
-                      className="form-control"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                       id="name"
                       name="name"
                       value={formData.name}
@@ -103,11 +114,14 @@ const UserLogin = () => {
                   </div>
                 )}
                 <div className="mb-3">
-                  <label className="form-label" htmlFor="email">
+                  <label
+                    className="mb-2 block text-sm font-bold text-slate-700"
+                    htmlFor="email"
+                  >
                     Email
                   </label>
                   <input
-                    className="form-control"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                     id="email"
                     name="email"
                     type="email"
@@ -118,11 +132,14 @@ const UserLogin = () => {
                   />
                 </div>
                 <div className="mb-4">
-                  <label className="form-label" htmlFor="password">
+                  <label
+                    className="mb-2 block text-sm font-bold text-slate-700"
+                    htmlFor="password"
+                  >
                     Password
                   </label>
                   <input
-                    className="form-control"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                     id="password"
                     name="password"
                     type="password"
@@ -135,11 +152,14 @@ const UserLogin = () => {
                 </div>
                 {isRegistering && (
                   <div className="mb-4">
-                    <label className="form-label" htmlFor="confirmPassword">
+                    <label
+                      className="mb-2 block text-sm font-bold text-slate-700"
+                      htmlFor="confirmPassword"
+                    >
                       Confirm password
                     </label>
                     <input
-                      className="form-control"
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                       id="confirmPassword"
                       name="confirmPassword"
                       type="password"
@@ -152,7 +172,7 @@ const UserLogin = () => {
                   </div>
                 )}
                 <button
-                  className="btn btn-primary w-100"
+                  className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-black text-white transition hover:bg-brand-700 disabled:opacity-60"
                   type="submit"
                   disabled={loading}
                 >
@@ -165,7 +185,7 @@ const UserLogin = () => {
               </form>
 
               <button
-                className="btn btn-link w-100 mt-3"
+                className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-black text-brand-700 hover:bg-brand-50"
                 type="button"
                 onClick={() => {
                   setIsRegistering((current) => !current);

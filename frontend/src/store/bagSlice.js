@@ -1,130 +1,88 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { userFetch } from "../utils/userApi";
 
-const STORAGE_KEY = "stylekartBag";
+// Remove the old browser-wide cart. Cart data now belongs to the authenticated user in MongoDB.
+localStorage.removeItem("stylekartBag");
 
-const createCartKey = ({
-  productId,
-  selectedSize = "",
-  selectedColor = "",
-}) => `${productId}::${selectedSize}::${selectedColor}`;
+const normalizeItem = (item = {}) => ({
+  productId: item.productId,
+  quantity: Math.max(Number(item.quantity) || 1, 1),
+  selectedSize: item.selectedSize || "",
+  selectedColor: item.selectedColor || "",
+});
 
-const readStoredBag = () => {
-  try {
-    const storedBag = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) || "[]",
-    );
+export const loadUserCart = createAsyncThunk("bag/loadUserCart", async () => {
+  const data = await userFetch("/cart");
+  return data.items || [];
+});
 
-    if (!Array.isArray(storedBag)) {
-      return [];
-    }
+export const addToBag = createAsyncThunk("bag/addToBag", async (payload) => {
+  const data = await userFetch("/cart/items", {
+    method: "POST",
+    body: JSON.stringify(normalizeItem(payload)),
+  });
+  return data.items || [];
+});
 
-    return storedBag.map((item) => {
-      if (typeof item === "string") {
-        return {
-          key: createCartKey({ productId: item }),
-          productId: item,
-          quantity: 1,
-          selectedSize: "",
-          selectedColor: "",
-        };
-      }
-
-      return {
-        key:
-          item.key ||
-          createCartKey({
-            productId: item.productId,
-            selectedSize: item.selectedSize,
-            selectedColor: item.selectedColor,
-          }),
-        productId: item.productId,
-        quantity: Math.max(Number(item.quantity) || 1, 1),
-        selectedSize: item.selectedSize || "",
-        selectedColor: item.selectedColor || "",
-      };
+export const updateBagQuantity = createAsyncThunk(
+  "bag/updateBagQuantity",
+  async (payload) => {
+    const data = await userFetch("/cart/items", {
+      method: "PATCH",
+      body: JSON.stringify({
+        productId: payload.productId,
+        quantity: Math.max(Number(payload.quantity) || 1, 1),
+        selectedSize: payload.selectedSize || "",
+        selectedColor: payload.selectedColor || "",
+      }),
     });
-  } catch {
-    return [];
-  }
-};
+    return data.items || [];
+  },
+);
 
-const persistBag = (bag) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bag));
-};
+export const removeFromBag = createAsyncThunk(
+  "bag/removeFromBag",
+  async (payload) => {
+    const data = await userFetch("/cart/items", {
+      method: "DELETE",
+      body: JSON.stringify({
+        productId: payload.productId,
+        selectedSize: payload.selectedSize || "",
+        selectedColor: payload.selectedColor || "",
+      }),
+    });
+    return data.items || [];
+  },
+);
 
-const normalizeCartItem = (payload) => {
-  if (typeof payload === "string") {
-    return {
-      productId: payload,
-      quantity: 1,
-      selectedSize: "",
-      selectedColor: "",
-    };
-  }
-
-  return {
-    productId: payload.productId,
-    quantity: Math.max(Number(payload.quantity) || 1, 1),
-    selectedSize: payload.selectedSize || "",
-    selectedColor: payload.selectedColor || "",
-  };
-};
+export const clearUserCart = createAsyncThunk("bag/clearUserCart", async () => {
+  const data = await userFetch("/cart", { method: "DELETE" });
+  return data.items || [];
+});
 
 const bagSlice = createSlice({
   name: "bag",
-  initialState: readStoredBag(),
+  initialState: [],
   reducers: {
-    addToBag: (state, action) => {
-      const item = normalizeCartItem(action.payload);
-
-      if (!item.productId) {
-        return;
-      }
-
-      const key = createCartKey(item);
-      const existingItem = state.find(
-        (cartItem) => cartItem.key === key,
-      );
-
-      if (existingItem) {
-        existingItem.quantity += item.quantity;
-      } else {
-        state.push({
-          key,
-          ...item,
-        });
-      }
-
-      persistBag(state);
-    },
-
-    updateQuantity: (state, action) => {
-      const { key, quantity } = action.payload;
-      const cartItem = state.find((item) => item.key === key);
-
-      if (!cartItem) {
-        return;
-      }
-
-      cartItem.quantity = Math.max(Number(quantity) || 1, 1);
-      persistBag(state);
-    },
-
-    removeFromBag: (state, action) => {
-      const nextBag = state.filter(
-        (item) => item.key !== action.payload,
-      );
-
-      persistBag(nextBag);
-      return nextBag;
-    },
-
-    clearBag: () => {
-      persistBag([]);
-      return [];
-    },
+    resetBag: () => [],
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(loadUserCart.fulfilled, (_state, action) => action.payload)
+      .addCase(addToBag.fulfilled, (_state, action) => action.payload)
+      .addCase(updateBagQuantity.fulfilled, (_state, action) => action.payload)
+      .addCase(removeFromBag.fulfilled, (_state, action) => action.payload)
+      .addCase(clearUserCart.fulfilled, (_state, action) => action.payload);
   },
 });
 
-export const bagActions = bagSlice.actions;
+export const bagActions = {
+  ...bagSlice.actions,
+  loadUserCart,
+  addToBag,
+  updateQuantity: updateBagQuantity,
+  removeFromBag,
+  clearBag: clearUserCart,
+};
+
 export default bagSlice.reducer;
