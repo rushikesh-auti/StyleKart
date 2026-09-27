@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const Address = require("../models/Address");
 const Coupon = require("../models/Coupon");
+const Cart = require("../models/Cart");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const { findValidCoupon, normalizeCode } = require("../services/couponService");
@@ -64,12 +65,8 @@ const createOrder = async (req, res, next) => {
       throw badRequest("A delivery address and at least one cart item are required.");
     }
 
-    if (!["COD", "ONLINE"].includes(paymentMethod)) {
-      throw badRequest("Select a valid payment method.");
-    }
-
-    if (paymentMethod === "ONLINE") {
-      throw badRequest("Online payments are not available yet. Choose Cash on Delivery.");
+    if (paymentMethod !== "COD") {
+      throw badRequest("Use the Razorpay checkout for online payments or choose Cash on Delivery.");
     }
 
     const address = await Address.findOne({ _id: addressId, user: req.user.id }).session(session);
@@ -217,6 +214,12 @@ const createOrder = async (req, res, next) => {
         },
         totalAmount: subtotal - couponDiscount + delivery,
       }],
+      { session },
+    );
+
+    await Cart.updateOne(
+      { user: req.user.id },
+      { $set: { items: [] } },
       { session },
     );
 

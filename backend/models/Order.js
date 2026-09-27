@@ -39,13 +39,17 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["COD", "ONLINE"],
+      enum: ["COD", "ONLINE", "RAZORPAY"],
       required: true,
     },
     paymentStatus: {
       type: String,
       enum: ["PENDING", "PAID", "FAILED", "REFUNDED"],
       default: "PENDING",
+    },
+    paymentDetails: {
+      razorpayOrderId: { type: String },
+      razorpayPaymentId: { type: String },
     },
     orderStatus: {
       type: String,
@@ -86,5 +90,14 @@ orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ user: 1, orderStatus: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index(
+  { "paymentDetails.razorpayOrderId": 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      "paymentDetails.razorpayOrderId": { $type: "string" },
+    },
+  },
+);
 
 module.exports = mongoose.model("Order", orderSchema);
