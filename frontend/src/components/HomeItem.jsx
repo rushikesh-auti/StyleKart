@@ -33,6 +33,11 @@ const HomeItem = ({ item }) => {
   };
 
   const toggleWishlist = () => {
+    if (!isUserAuthenticated) {
+      navigate("/login", { state: { from: `/product/${item.id}` } });
+      return;
+    }
+
     dispatch(
       isInWishlist
         ? wishlistActions.removeFromWishlist(item.id)
