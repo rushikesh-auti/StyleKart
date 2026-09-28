@@ -12,6 +12,7 @@ import { clearAdminSession, setAdminSession } from "../store/adminAuthSlice";
 
 import { fetchStatusActions } from "../store/fetchStatusSlice";
 import { bagActions } from "../store/bagSlice";
+import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
           dispatch(clearUserSession());
           dispatch(clearAdminSession());
           dispatch(bagActions.resetBag());
+          dispatch(wishlistActions.resetWishlist());
           return;
         }
 
@@ -42,11 +44,13 @@ function App() {
         if (active && data.user?.role === "admin") {
           dispatch(clearUserSession());
           dispatch(bagActions.resetBag());
+          dispatch(wishlistActions.resetWishlist());
           dispatch(setAdminSession({ admin: data.user }));
         } else if (active && data.user) {
           dispatch(clearAdminSession());
           dispatch(restoreUserSession({ user: data.user }));
           dispatch(bagActions.loadUserCart());
+          dispatch(wishlistActions.loadUserWishlist());
         }
       })
       .catch(() => {
