@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { setUserSession } from "../store/userAuthSlice";
 import { clearAdminSession } from "../store/adminAuthSlice";
 import { bagActions } from "../store/bagSlice";
+import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 const UserLogin = () => {
@@ -61,8 +62,13 @@ const UserLogin = () => {
       }
 
       dispatch(clearAdminSession());
+      dispatch(bagActions.resetBag());
+      dispatch(wishlistActions.resetWishlist());
       dispatch(setUserSession({ user: data.user }));
-      await dispatch(bagActions.loadUserCart());
+      await Promise.all([
+        dispatch(bagActions.loadUserCart()),
+        dispatch(wishlistActions.loadUserWishlist()),
+      ]);
       const destination = location.state?.from || "/";
       navigate(destination, { replace: true });
     } catch (requestError) {

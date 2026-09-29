@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { setAdminSession } from "../store/adminAuthSlice";
 import { clearUserSession } from "../store/userAuthSlice";
 import { bagActions } from "../store/bagSlice";
+import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
 const API_URL = adminApiUrl("/auth/admin/login");
@@ -58,6 +59,7 @@ const AdminLogin = () => {
 
       dispatch(clearUserSession());
       dispatch(bagActions.resetBag());
+      dispatch(wishlistActions.resetWishlist());
       dispatch(setAdminSession({ admin: data.admin }));
 
       // Redirect to the admin dashboard
