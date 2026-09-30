@@ -20,6 +20,7 @@ import Beauty from "./pages/Beauty.jsx";
 import Categories from "./pages/Categories.jsx";
 import ProductListing from "./pages/ProductListing.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import HelpContact from "./pages/HelpContact.jsx";
 
 import UserLogin from "./pages/UserLogin.jsx";
 import Profile from "./pages/Profile.jsx";
@@ -107,6 +108,10 @@ const router = createBrowserRouter([
           {
             path: "/profile",
             element: <Profile />,
+          },
+          {
+            path: "/contact",
+            element: <HelpContact />,
           },
           {
             path: "/addresses",

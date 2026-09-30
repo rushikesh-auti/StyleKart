@@ -267,12 +267,7 @@ const Header = () => {
               count={wishlist.length}
               onClick={menu.close}
             />
-            <Tile
-              to="/coupons"
-              icon={FaTicket}
-              label="Coupons"
-              onClick={menu.close}
-            />
+            <Tile to="/" icon={FaTicket} label="Coupons" onClick={menu.close} />
           </div>
 
           <div className="px-3 pb-3">
@@ -290,7 +285,7 @@ const Header = () => {
             />
             <Row to="/" icon={FaGift} label="Gift cards" onClick={menu.close} />
             <Row
-              to="/"
+              to="/contact"
               icon={FaHeadset}
               label="Help and contact"
               onClick={menu.close}
@@ -339,7 +334,7 @@ const Header = () => {
             onClick={menu.close}
           />
           <Row
-            to="/"
+            to="/contact"
             icon={FaHeadset}
             label="Help and contact"
             onClick={menu.close}
