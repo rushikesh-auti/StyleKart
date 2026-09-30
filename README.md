@@ -6,8 +6,7 @@ A modern full-stack fashion e-commerce platform built using **React.js, Vite, No
 
 ## Live Demo
 
-**[https://stylekart-store.vercel.app/](https://stylekart-store.vercel.app/)**
-
+https://stylekart-store.vercel.app/
 ---
 
 ## Overview
