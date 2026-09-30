@@ -48,6 +48,8 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
+      // PUBLIC ROUTES
+
       {
         index: true,
         element: <Home />,
@@ -81,6 +83,17 @@ const router = createBrowserRouter([
         element: <ProductDetails />,
       },
       {
+        path: "/contact",
+        element: <HelpContact />,
+      },
+      {
+        path: "/login",
+        element: <UserLogin />,
+      },
+
+      // CUSTOMER-ONLY ROUTES
+
+      {
         element: <CustomerOnlyRoute />,
         children: [
           {
@@ -89,15 +102,9 @@ const router = createBrowserRouter([
           },
         ],
       },
-      {
-        path: "/checkout",
-        element: <ProtectedRoute />,
-        children: [{ index: true, element: <Checkout /> }],
-      },
-      {
-        path: "/login",
-        element: <UserLogin />,
-      },
+
+      // PROTECTED CUSTOMER ROUTES
+
       {
         element: <ProtectedRoute />,
         children: [
@@ -108,10 +115,6 @@ const router = createBrowserRouter([
           {
             path: "/profile",
             element: <Profile />,
-          },
-          {
-            path: "/contact",
-            element: <HelpContact />,
           },
           {
             path: "/addresses",
@@ -127,10 +130,29 @@ const router = createBrowserRouter([
           },
         ],
       },
+
+      // CHECKOUT
+
+      {
+        path: "/checkout",
+        element: <ProtectedRoute />,
+        children: [
+          {
+            index: true,
+            element: <Checkout />,
+          },
+        ],
+      },
+
+      // ADMIN PUBLIC ROUTE
+
       {
         path: "/admin/login",
         element: <AdminLogin />,
       },
+
+      // PROTECTED ADMIN ROUTES
+
       {
         element: <AdminProtectedRoute />,
         children: [
