@@ -42,11 +42,13 @@ import AdminInventory from "./pages/AdminInventory.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
 import CustomerOnlyRoute from "./components/CustomerOnlyRoute.jsx";
+import ErrorPage from "./pages/ErrorPage.jsx";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+    errorElement: <ErrorPage />,
     children: [
       // PUBLIC ROUTES
 
@@ -189,6 +191,10 @@ const router = createBrowserRouter([
             element: <AdminInventory />,
           },
         ],
+      },
+      {
+        path: "*",
+        element: <ErrorPage />,
       },
     ],
   },
