@@ -60,6 +60,12 @@ const AdminDashboard = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
+            to="/admin/support"
+            className="rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-700"
+          >
+            Support inbox
+          </Link>
+          <Link
             to="/admin/orders"
             className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-brand-600"
           >
@@ -171,6 +177,12 @@ const AdminDashboard = () => {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2">
+        <Link
+          to="/admin/support"
+          className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-700"
+        >
+          Support inbox
+        </Link>
         <Link
           to="/admin/products"
           className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-700"
