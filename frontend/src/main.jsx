@@ -38,6 +38,7 @@ import AdminCoupons from "./pages/AdminCoupons.jsx";
 import AdminOrders from "./pages/AdminOrders.jsx";
 import AdminCustomers from "./pages/AdminCustomers.jsx";
 import AdminInventory from "./pages/AdminInventory.jsx";
+import AdminSupportInbox from "./pages/AdminSupportInbox.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
@@ -189,6 +190,10 @@ const router = createBrowserRouter([
           {
             path: "/admin/inventory",
             element: <AdminInventory />,
+          },
+          {
+            path: "/admin/support",
+            element: <AdminSupportInbox />,
           },
         ],
       },
