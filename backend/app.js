@@ -62,7 +62,11 @@ app.use((req, res, next) => {
   const contentLength = Number(req.headers["content-length"] || 0);
   const hasBody = contentLength > 0 || Boolean(req.headers["transfer-encoding"]);
 
-  if (["POST", "PUT", "PATCH"].includes(req.method) && hasBody) {
+  if (
+    ["POST", "PUT", "PATCH"].includes(req.method) &&
+    hasBody &&
+    !req.is("multipart/form-data")
+  ) {
     return requireJsonObject(req, res, next);
   }
 
