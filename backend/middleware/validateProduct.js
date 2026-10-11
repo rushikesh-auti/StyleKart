@@ -20,6 +20,7 @@ const validateProduct = (req, res, next) => {
     "item_name",
     "description",
     "image",
+    "imagePublicId",
     "images",
     "original_price",
     "current_price",
@@ -60,6 +61,32 @@ const validateProduct = (req, res, next) => {
 
   if (!image || typeof image !== "string" || !image.trim()) {
     errors.image = "Product image is required";
+  }
+
+  if (
+    req.body.imagePublicId !== undefined &&
+    typeof req.body.imagePublicId !== "string"
+  ) {
+    errors.imagePublicId = "Image public_id must be text";
+  } else if (req.body.imagePublicId) {
+    const validPublicId =
+      /^stylekart\/products\/[A-Za-z0-9._/-]+$/.test(req.body.imagePublicId) &&
+      !req.body.imagePublicId.includes("..");
+    let isCloudinaryUrl = false;
+
+    try {
+      const imageUrl = new URL(image);
+      isCloudinaryUrl =
+        imageUrl.protocol === "https:" &&
+        imageUrl.hostname === "res.cloudinary.com";
+    } catch {
+      isCloudinaryUrl = false;
+    }
+
+    if (!validPublicId || !isCloudinaryUrl) {
+      errors.imagePublicId =
+        "Cloudinary image metadata must include a valid product public_id and secure URL";
+    }
   }
 
   if (
