@@ -1,6 +1,15 @@
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
+import { adminFetch } from "../utils/adminApi";
+
 const categories = ["men", "women", "kids", "beauty"];
+const MAX_IMAGE_SIZE_MB = (() => {
+  const configuredValue = Number(import.meta.env.VITE_PRODUCT_IMAGE_MAX_SIZE_MB);
+  return Number.isFinite(configuredValue) && configuredValue > 0
+    ? Math.min(configuredValue, 20)
+    : 5;
+})();
 
 const ProductForm = ({
   formData,
@@ -10,6 +19,19 @@ const ProductForm = ({
   loading = false,
   error = "",
 }) => {
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  useEffect(
+    () => () => {
+      if (imagePreview.startsWith("blob:")) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    },
+    [imagePreview],
+  );
+
   const handleArrayChange = (event) => {
     const { name, value } = event.target;
 
@@ -24,14 +46,117 @@ const ProductForm = ({
     });
   };
 
+  const handleImageFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    const allowedTypes = {
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/png": [".png"],
+      "image/webp": [".webp"],
+    };
+    const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    const validType =
+      allowedTypes[file.type]?.includes(extension) &&
+      file.size <= MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
+    if (!validType) {
+      setUploadError(
+        `Choose a JPEG, PNG, or WebP image with a matching extension, no larger than ${MAX_IMAGE_SIZE_MB} MB.`,
+      );
+      return;
+    }
+
+    setUploadError("");
+    setImagePreview(URL.createObjectURL(file));
+    setUploading(true);
+
+    try {
+      const uploadData = new FormData();
+      uploadData.append("image", file);
+
+      const response = await adminFetch("/admin/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.image?.secure_url || !data.image?.public_id) {
+        throw new Error(data.message || "Unable to upload product image.");
+      }
+
+      onChange({
+        target: { name: "image", value: data.image.secure_url },
+      });
+      onChange({
+        target: { name: "imagePublicId", value: data.image.public_id },
+      });
+      setImagePreview(data.image.secure_url);
+    } catch (uploadFailure) {
+      setImagePreview("");
+      setUploadError(uploadFailure.message || "Unable to upload product image.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    setUploadError("");
+
+    if (formData.imagePublicId) {
+      try {
+        const response = await adminFetch("/admin/upload", {
+          method: "DELETE",
+          body: JSON.stringify({ public_id: formData.imagePublicId }),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok && response.status !== 409) {
+          throw new Error(data.message || "Unable to remove uploaded image.");
+        }
+      } catch (removeFailure) {
+        setUploadError(
+          removeFailure.message || "Unable to remove uploaded image.",
+        );
+        return;
+      }
+    }
+
+    setImagePreview("");
+    onChange({ target: { name: "image", value: "" } });
+    onChange({ target: { name: "imagePublicId", value: "" } });
+  };
+
+  const handleFormSubmit = (event) => {
+    if (uploading || !formData.image) {
+      event.preventDefault();
+      if (!formData.image) {
+        setUploadError("Choose and upload a product image before saving.");
+      }
+      return;
+    }
+
+    onSubmit(event);
+  };
+
+  const previewSource =
+    imagePreview ||
+    (formData.image
+      ? /^https?:\/\//i.test(formData.image)
+        ? formData.image
+        : `/${formData.image.replace(/^\/+/, "")}`
+      : "");
+
   return (
-    <form onSubmit={onSubmit} className="grid gap-5">
-      {error && (
+    <form onSubmit={handleFormSubmit} className="grid gap-5">
+      {(error || uploadError) && (
         <div
           className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700"
           role="alert"
         >
-          {error}
+          {uploadError || error}
         </div>
       )}
 
@@ -175,41 +300,49 @@ const ProductForm = ({
 
         <div className="md:col-span-12">
           <label
-            htmlFor="image"
-            className="mb-2 block text-sm font-bold text-slate-700"
+            htmlFor="imageFile"
+            className="mb-2 mt-4 block text-sm font-bold text-slate-700"
           >
-            Image Path or URL *
+            Choose a product image
           </label>
-
           <input
-            id="image"
-            type="text"
-            name="image"
-            value={formData.image}
-            onChange={onChange}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-            placeholder="images/product.jpg or https://example.com/product.jpg"
-            required
+            id="imageFile"
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+            onChange={handleImageFileChange}
+            disabled={uploading || loading}
+            className="block w-full cursor-pointer rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-bold file:text-slate-700 hover:file:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
           />
+          <p className="mt-2 text-xs text-slate-500" aria-live="polite">
+            {uploading
+              ? "Uploading image securely..."
+              : `JPEG, PNG, or WebP; maximum size ${MAX_IMAGE_SIZE_MB} MB.`}
+          </p>
         </div>
 
-        {formData.image && (
+        {previewSource && (
           <div className="md:col-span-12">
-            <div className="rounded-xl border border-slate-200 p-4">
-              <p className="mb-2 text-xs text-slate-500">Image Preview</p>
+            <div className="flex items-start gap-4 rounded-xl border border-slate-200 p-4">
 
               <img
-                src={
-                  /^https?:\/\//i.test(formData.image)
-                    ? formData.image
-                    : `/${formData.image.replace(/^\/+/, "")}`
-                }
+                src={previewSource}
                 alt="Product preview"
                 className="h-[180px] w-[140px] rounded-xl object-cover"
                 onError={(event) => {
                   event.currentTarget.classList.add("hidden");
                 }}
               />
+              <div className="flex flex-col items-start gap-2">
+                <p className="text-xs text-slate-500">Image Preview</p>
+                <button
+                  type="button"
+                  className="rounded-lg border border-rose-200 px-3 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={handleRemoveImage}
+                  disabled={uploading || loading}
+                >
+                  Remove image
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -458,9 +591,9 @@ const ProductForm = ({
             <button
               type="submit"
               className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-black text-white transition hover:bg-brand-600"
-              disabled={loading}
+              disabled={loading || uploading || !formData.image}
             >
-              {loading ? "Saving..." : submitText}
+              {uploading ? "Uploading image..." : loading ? "Saving..." : submitText}
             </button>
           </div>
         </div>
@@ -478,6 +611,7 @@ ProductForm.propTypes = {
     subcategory: PropTypes.string.isRequired,
     description: PropTypes.string.isRequired,
     image: PropTypes.string.isRequired,
+    imagePublicId: PropTypes.string,
     original_price: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
       .isRequired,
     current_price: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
