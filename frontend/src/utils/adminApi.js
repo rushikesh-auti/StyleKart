@@ -8,7 +8,10 @@ export const clearAdminSession = () => {
 export const adminFetch = async (path, options = {}) => {
   const headers = new Headers(options.headers || {});
 
-  if (options.body && !headers.has("Content-Type")) {
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (options.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -28,6 +31,23 @@ export const adminFetch = async (path, options = {}) => {
   }
 
   return response;
+};
+
+export const getAdminErrorMessage = (data, fallback) => {
+  const fieldErrors = data?.errors
+    ? Object.values(data.errors).flatMap((value) =>
+        Array.isArray(value) ? value : [value],
+      )
+    : [];
+  const details = fieldErrors.filter((value) => typeof value === "string");
+  const message =
+    typeof data?.message === "string" && data.message.trim()
+      ? data.message
+      : fallback;
+
+  if (details.length === 0) return message;
+  if (message === "Product validation failed") return details.join(". ");
+  return `${message} ${details.join(". ")}`;
 };
 
 export const adminApiUrl = (path) =>
