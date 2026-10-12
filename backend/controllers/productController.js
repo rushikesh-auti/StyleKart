@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+const { cleanupProductImage } = require("../services/cloudinaryAssetService");
 
 const escapeRegex = (value = "") =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -227,12 +228,31 @@ const createProduct = async (req, res, next) => {
       product,
     });
   } catch (error) {
+    await cleanupProductImage(req.productInput.imagePublicId);
     next(error);
   }
 };
 
 const updateProduct = async (req, res, next) => {
   try {
+    const existingProduct = await Product.findOne({ id: req.params.id });
+
+    if (!existingProduct) {
+      await cleanupProductImage(req.productInput.imagePublicId);
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (
+      req.productInput.image !== undefined &&
+      req.productInput.image !== existingProduct.image &&
+      req.productInput.imagePublicId === undefined
+    ) {
+      req.productInput.imagePublicId = "";
+    }
+
     const product = await Product.findOneAndUpdate(
       { id: req.params.id },
       req.productInput,
@@ -243,11 +263,14 @@ const updateProduct = async (req, res, next) => {
     );
 
     if (!product) {
+      await cleanupProductImage(req.productInput.imagePublicId);
       return res.status(404).json({
         success: false,
         message: "Product not found",
       });
     }
+
+    await cleanupProductImage(existingProduct.imagePublicId);
 
     res.status(200).json({
       success: true,
@@ -255,6 +278,7 @@ const updateProduct = async (req, res, next) => {
       product,
     });
   } catch (error) {
+    await cleanupProductImage(req.productInput.imagePublicId);
     next(error);
   }
 };
@@ -271,6 +295,8 @@ const deleteProduct = async (req, res, next) => {
         message: "Product not found",
       });
     }
+
+    await cleanupProductImage(product.imagePublicId);
 
     res.status(200).json({
       success: true,
