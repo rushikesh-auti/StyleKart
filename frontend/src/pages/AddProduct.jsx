@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import ProductForm from "../components/ProductForm";
-import { adminFetch } from "../utils/adminApi";
+import { adminFetch, getAdminErrorMessage } from "../utils/adminApi";
 
 const initialFormData = {
   item_name: "",
@@ -12,6 +12,7 @@ const initialFormData = {
   subcategory: "",
   description: "",
   image: "",
+  imagePublicId: "",
   original_price: "",
   current_price: "",
   discount_percentage: 0,
@@ -37,6 +38,15 @@ const AddProduct = () => {
       setFormData((previous) => ({
         ...previous,
         rating: { ...previous.rating, [field]: value },
+      }));
+      return;
+    }
+
+    if (name === "image") {
+      setFormData((previous) => ({
+        ...previous,
+        image: value,
+        imagePublicId: "",
       }));
       return;
     }
@@ -69,7 +79,7 @@ const AddProduct = () => {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.message || "Unable to add product.");
+        throw new Error(getAdminErrorMessage(data, "Unable to add product."));
       }
 
       navigate("/admin/products");
