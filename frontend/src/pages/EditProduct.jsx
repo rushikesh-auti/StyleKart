@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import ProductForm from "../components/ProductForm";
-import { adminApiUrl, adminFetch } from "../utils/adminApi";
+import {
+  adminApiUrl,
+  adminFetch,
+  getAdminErrorMessage,
+} from "../utils/adminApi";
 
 const emptyFormData = {
   item_name: "",
@@ -12,6 +16,7 @@ const emptyFormData = {
   subcategory: "",
   description: "",
   image: "",
+  imagePublicId: "",
   original_price: "",
   current_price: "",
   discount_percentage: 0,
@@ -63,6 +68,7 @@ function EditProduct() {
           subcategory: product.subcategory || "",
           description: product.description || "",
           image: product.image || "",
+          imagePublicId: product.imagePublicId || "",
           original_price: product.original_price ?? "",
           current_price: product.current_price ?? "",
           discount_percentage: product.discount_percentage ?? 0,
@@ -113,6 +119,15 @@ function EditProduct() {
       return;
     }
 
+    if (name === "image") {
+      setFormData((previous) => ({
+        ...previous,
+        image: value,
+        imagePublicId: "",
+      }));
+      return;
+    }
+
     setFormData((previous) => ({
       ...previous,
       [name]: value,
@@ -148,8 +163,10 @@ function EditProduct() {
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
+          getAdminErrorMessage(
+            data,
             `Unable to update product (server returned ${response.status}).`,
+          ),
         );
       }
 
