@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 
 import { clearAdminSession } from "../store/adminAuthSlice";
 import { adminFetch } from "../utils/adminApi";
+import getProductImageUrl from "../utils/productImageUrl";
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -149,7 +150,7 @@ const AdminProducts = () => {
                   <tr key={product.id}>
                     <td>
                       <img
-                        src={`/${product.image}`}
+                        src={getProductImageUrl(product.image)}
                         alt={product.item_name}
                         width="60"
                         height="75"
