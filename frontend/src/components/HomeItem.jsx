@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaHeart, FaRegHeart, FaStar } from "react-icons/fa";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
+import getProductImageUrl from "../utils/productImageUrl";
 
 const HomeItem = ({ item }) => {
   const dispatch = useDispatch();
@@ -17,7 +18,7 @@ const HomeItem = ({ item }) => {
   const isOutOfStock = item.stock <= 0;
   const requiresOptions =
     (item.sizes?.length || 0) > 0 || (item.colors?.length || 0) > 0;
-  const imagePath = `/${String(item.image || "").replace(/^\/+/, "")}`;
+  const imagePath = getProductImageUrl(item.image);
 
   const addToCart = () => {
     if (isOutOfStock || isInBag) return;
