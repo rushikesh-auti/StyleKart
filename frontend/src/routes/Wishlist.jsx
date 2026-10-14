@@ -4,6 +4,7 @@ import { FaHeart, FaTrashCan } from "react-icons/fa6";
 
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
+import getProductImageUrl from "../utils/productImageUrl";
 
 const Wishlist = () => {
   const dispatch = useDispatch();
@@ -93,7 +94,7 @@ const Wishlist = () => {
                 className="block aspect-[4/5] overflow-hidden bg-slate-100"
               >
                 <img
-                  src={`/${String(product.image || "").replace(/^\/+/, "")}`}
+                  src={getProductImageUrl(product.image)}
                   className="h-full w-full object-cover transition duration-300 hover:scale-105"
                   alt={product.item_name}
                 />
