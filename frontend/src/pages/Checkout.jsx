@@ -5,6 +5,7 @@ import { FaCreditCard, FaMoneyBillWave, FaShieldHalved } from "react-icons/fa6";
 
 import { bagActions } from "../store/bagSlice";
 import { getCartSummary } from "../utils/cartCalculations";
+import getProductImageUrl from "../utils/productImageUrl";
 import { loadRazorpay } from "../utils/razorpay";
 import { userFetch } from "../utils/userApi";
 
@@ -240,7 +241,7 @@ const Checkout = () => {
                   >
                     <img
                       className="h-[78px] w-[62px] rounded-lg bg-slate-100 object-cover"
-                      src={`/${String(product.image || "").replace(/^\/+/, "")}`}
+                      src={getProductImageUrl(product.image)}
                       alt=""
                     />
                     <div>
