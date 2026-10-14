@@ -8,6 +8,7 @@ import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
 import { getProducts } from "../utils/productApi";
+import getProductImageUrl from "../utils/productImageUrl";
 import { userFetch } from "../utils/userApi";
 import {
   addRecentlyViewedProduct,
@@ -281,10 +282,7 @@ const ProductDetails = () => {
     }
   };
 
-  const imagePath = `/${String(selectedImage || product.image).replace(
-    /^\/+/,
-    "",
-  )}`;
+  const imagePath = getProductImageUrl(selectedImage || product.image);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -303,7 +301,7 @@ const ProductDetails = () => {
                 onClick={() => setSelectedImage(image)}
                 aria-label={`View ${product.item_name}`}
               >
-                <img src={`/${String(image).replace(/^\/+/, "")}`} alt="" />
+                <img src={getProductImageUrl(image)} alt="" />
               </button>
             ))}
           </div>
