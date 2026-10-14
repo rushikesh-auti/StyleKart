@@ -4,6 +4,7 @@ import { RiDeleteBin5Fill } from "react-icons/ri";
 
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
+import getProductImageUrl from "../utils/productImageUrl";
 
 const BagItem = ({ entry, item, quantity }) => {
   const dispatch = useDispatch();
@@ -49,7 +50,7 @@ const BagItem = ({ entry, item, quantity }) => {
         className="aspect-[4/5] overflow-hidden rounded-xl bg-slate-100 [&_img]:h-full [&_img]:w-full [&_img]:object-cover"
       >
         <img
-          src={`/${String(item.image).replace(/^\/+/, "")}`}
+          src={getProductImageUrl(item.image)}
           alt={item.item_name}
         />
       </Link>
