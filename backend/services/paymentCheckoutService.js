@@ -156,6 +156,7 @@ const finalizePaidOrder = async ({ userId, snapshot, paymentDetails }) => {
         items: snapshot.items,
         shippingAddress: snapshot.shippingAddress,
         paymentMethod: "RAZORPAY",
+        inventoryDeducted: true,
         paymentStatus: "PAID",
         orderStatus: "CONFIRMED",
         paymentDetails,
