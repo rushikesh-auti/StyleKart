@@ -6,6 +6,19 @@ const Cart = require("../models/Cart");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const { findValidCoupon, normalizeCode } = require("../services/couponService");
+const { attemptOrderRefund } = require("../services/orderRefundService");
+
+const cancellationReasons = [
+  "Ordered by mistake",
+  "Found a better price",
+  "Wrong item or size",
+  "Delivery taking too long",
+  "Changed my mind",
+  "Other",
+];
+const cancellableStatuses = ["PLACED", "CONFIRMED", "PROCESSING"];
+const customerOrderProjection =
+  "-inventoryDeducted -inventoryRestoreIssues -refundFailureReason -refundRequestStartedAt -refundRequestUncertain";
 
 const createOrderNumber = () =>
   `SK-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -20,7 +33,9 @@ const getOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ user: req.user.id })
       .sort({ createdAt: -1 })
-      .select("orderNumber items totalAmount orderStatus paymentStatus createdAt");
+      .select(
+        "orderNumber items totalAmount orderStatus paymentStatus paymentMethod createdAt cancellationReason cancellationNote cancelledAt cancellationInitiator refundStatus providerRefundId",
+      );
 
     res.json({ success: true, orders });
   } catch (error) {
@@ -37,7 +52,7 @@ const getOrder = async (req, res, next) => {
     const order = await Order.findOne({
       _id: req.params.id,
       user: req.user.id,
-    });
+    }).select(customerOrderProjection);
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found." });
@@ -46,6 +61,143 @@ const getOrder = async (req, res, next) => {
     res.json({ success: true, order });
   } catch (error) {
     next(error);
+  }
+};
+
+const cancelOrder = async (req, res, next) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { reason, note = "" } = req.body;
+    const orderId = req.params.id;
+
+    if (!mongoose.isValidObjectId(orderId)) {
+      throw badRequest("Order identifier is invalid.");
+    }
+    if (typeof reason !== "string" || !cancellationReasons.includes(reason)) {
+      throw badRequest("Select a valid cancellation reason.");
+    }
+    if (typeof note !== "string" || note.trim().length > 500) {
+      throw badRequest("Cancellation note must be 500 characters or fewer.");
+    }
+
+    let shouldAttemptRefund = false;
+
+    await session.withTransaction(async () => {
+      const existingOrder = await Order.findOne({
+        _id: orderId,
+        user: req.user.id,
+      }).session(session);
+
+      if (!existingOrder) {
+        const error = new Error("Order not found.");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      if (existingOrder.orderStatus === "CANCELLED") {
+        return;
+      }
+
+      if (!cancellableStatuses.includes(existingOrder.orderStatus)) {
+        const error = new Error(
+          "This order can no longer be cancelled because it has been shipped or completed.",
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      const now = new Date();
+      const refundFields = {};
+      const refundStatus =
+        existingOrder.paymentMethod === "RAZORPAY" &&
+        existingOrder.paymentStatus === "PAID"
+          ? "PENDING"
+          : "NOT_REQUIRED";
+      if (refundStatus === "PENDING") refundFields.refundProvider = "RAZORPAY";
+      const cancellationUpdate = await Order.updateOne(
+        {
+          _id: orderId,
+          user: req.user.id,
+          orderStatus: existingOrder.orderStatus,
+          inventoryRestoredAt: { $exists: false },
+        },
+        {
+          $set: {
+            orderStatus: "CANCELLED",
+            cancellationReason: reason,
+            cancellationNote: note.trim(),
+            cancelledAt: now,
+            cancelledBy: req.user.id,
+            cancellationInitiator: "CUSTOMER",
+            inventoryRestoreIssues: [],
+            inventoryRestoredAt: now,
+            refundStatus,
+            ...refundFields,
+          },
+        },
+        { session },
+      );
+
+      if (cancellationUpdate.modifiedCount !== 1) {
+        const error = new Error(
+          "The order changed while cancellation was being processed. Refresh and try again.",
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      const inventoryRestoreIssues = [];
+      if (existingOrder.inventoryDeducted) {
+        for (const item of existingOrder.items) {
+          const stockUpdate = await Product.updateOne(
+            { id: item.productId },
+            { $inc: { stock: item.quantity } },
+            { session },
+          );
+          if (stockUpdate.matchedCount !== 1) {
+            inventoryRestoreIssues.push(
+              `${item.itemName} (${item.productId}) was unavailable when stock was restored.`,
+            );
+          }
+        }
+      }
+
+      if (inventoryRestoreIssues.length > 0) {
+        await Order.updateOne(
+          { _id: orderId },
+          { $set: { inventoryRestoreIssues } },
+          { session },
+        );
+      }
+
+      shouldAttemptRefund = refundStatus === "PENDING";
+    });
+
+    if (shouldAttemptRefund) {
+      await attemptOrderRefund(orderId);
+    }
+
+    const customerOrder = await Order.findOne({
+      _id: orderId,
+      user: req.user.id,
+    }).select(customerOrderProjection);
+
+    res.json({
+      success: true,
+      message:
+        customerOrder.refundStatus === "FAILED"
+          ? "Order cancelled. The refund needs attention and can be retried by support."
+          : customerOrder.refundStatus === "PENDING" ||
+              customerOrder.refundStatus === "PROCESSING"
+            ? "Order cancelled. The refund is being processed."
+            : "Order cancelled successfully.",
+      order: customerOrder,
+    });
+  } catch (error) {
+    next(error);
+  } finally {
+    await session.endSession();
   }
 };
 
@@ -204,6 +356,7 @@ const createOrder = async (req, res, next) => {
         items: orderItems,
         shippingAddress: address.toObject(),
         paymentMethod,
+        inventoryDeducted: true,
         priceSummary: {
           totalMrp,
           discount,
@@ -236,4 +389,4 @@ const createOrder = async (req, res, next) => {
   }
 };
 
-module.exports = { getOrders, getOrder, createOrder };
+module.exports = { getOrders, getOrder, createOrder, cancelOrder };
