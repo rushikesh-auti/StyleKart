@@ -3,11 +3,12 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
+const { attemptOrderRefund } = require("../services/orderRefundService");
 
 const allowedTransitions = {
-  PLACED: ["CONFIRMED", "CANCELLED"],
-  CONFIRMED: ["PROCESSING", "CANCELLED"],
-  PROCESSING: ["SHIPPED", "CANCELLED"],
+  PLACED: ["CONFIRMED"],
+  CONFIRMED: ["PROCESSING"],
+  PROCESSING: ["SHIPPED"],
   SHIPPED: ["OUT_FOR_DELIVERY"],
   OUT_FOR_DELIVERY: ["DELIVERED"],
   DELIVERED: ["RETURN_REQUESTED"],
@@ -103,10 +104,13 @@ const getAdminOrders = async (req, res, next) => {
     const [orders, total] = await Promise.all([
       Order.find(filter)
         .populate("user", "name email mobile")
+        .populate("cancelledBy", "name email")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .select("orderNumber user items totalAmount orderStatus paymentStatus paymentMethod createdAt"),
+        .select(
+          "orderNumber user items totalAmount orderStatus paymentStatus paymentMethod createdAt cancellationReason cancellationNote cancelledAt cancelledBy cancellationInitiator inventoryRestoreIssues refundStatus refundProvider providerRefundId refundFailureReason",
+        ),
       Order.countDocuments(filter),
     ]);
 
@@ -132,6 +136,8 @@ const getAdminOrder = async (req, res, next) => {
 };
 
 const restoreOrderStock = async (order, session) => {
+  if (!order.inventoryDeducted || order.inventoryRestoredAt) return;
+
   for (const item of order.items) {
     const result = await Product.updateOne(
       { id: item.productId },
@@ -140,6 +146,7 @@ const restoreOrderStock = async (order, session) => {
     );
     if (result.matchedCount !== 1) throw createError(`Could not restore stock for ${item.itemName}.`);
   }
+  order.inventoryRestoredAt = new Date();
 };
 
 const updateOrderStatus = async (req, res, next) => {
@@ -147,6 +154,7 @@ const updateOrderStatus = async (req, res, next) => {
   try {
     const nextStatus = String(req.body.orderStatus || "").trim();
     if (!nextStatus) throw createError("Select an order status.");
+    if (!mongoose.isValidObjectId(req.params.id)) throw createError("Order not found.", 404);
 
     await session.startTransaction();
     const order = await Order.findById(req.params.id).session(session);
@@ -156,7 +164,7 @@ const updateOrderStatus = async (req, res, next) => {
       throw createError(`Cannot change an ${order.orderStatus} order to ${nextStatus}.`);
     }
 
-    if (["CANCELLED", "RETURNED"].includes(nextStatus)) await restoreOrderStock(order, session);
+    if (nextStatus === "RETURNED") await restoreOrderStock(order, session);
 
     order.orderStatus = nextStatus;
     if (nextStatus === "DELIVERED" && order.paymentMethod === "COD") order.paymentStatus = "PAID";
@@ -170,6 +178,37 @@ const updateOrderStatus = async (req, res, next) => {
     next(error);
   } finally {
     await session.endSession();
+  }
+};
+
+const retryOrderRefund = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      throw createError("Order not found.", 404);
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) throw createError("Order not found.", 404);
+    if (
+      order.orderStatus !== "CANCELLED" ||
+      !["PENDING", "FAILED", "PROCESSING"].includes(order.refundStatus)
+    ) {
+      throw createError("This order does not have a retryable refund.", 409);
+    }
+
+    const updatedOrder = await attemptOrderRefund(order._id);
+    res.json({
+      success: true,
+      message:
+        updatedOrder.refundStatus === "PROCESSED"
+          ? "Refund confirmed as processed by Razorpay."
+          : updatedOrder.refundStatus === "FAILED"
+            ? "Refund failed. Review the provider status before retrying."
+            : "Refund status reconciled; it is still pending.",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -222,7 +261,11 @@ const getCustomer = async (req, res, next) => {
     if (!mongoose.isValidObjectId(req.params.id)) throw createError("Customer not found.", 404);
     const customer = await User.findOne({ _id: req.params.id, role: "user" }).select("name email mobile createdAt");
     if (!customer) throw createError("Customer not found.", 404);
-    const orders = await Order.find({ user: customer._id }).sort({ createdAt: -1 }).select("orderNumber items totalAmount orderStatus paymentStatus createdAt");
+    const orders = await Order.find({ user: customer._id })
+      .sort({ createdAt: -1 })
+      .select(
+        "orderNumber items totalAmount orderStatus paymentStatus paymentMethod createdAt cancellationReason cancellationNote cancelledAt cancellationInitiator refundStatus providerRefundId",
+      );
     res.json({ success: true, customer, orders });
   } catch (error) {
     next(error);
@@ -235,6 +278,7 @@ module.exports = {
   getAdminOrders,
   getAdminOrder,
   updateOrderStatus,
+  retryOrderRefund,
   getCustomers,
   getCustomer,
 };
