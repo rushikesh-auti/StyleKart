@@ -6,6 +6,7 @@ const {
   getAdminOrders,
   getAdminOrder,
   updateOrderStatus,
+  retryOrderRefund,
   getCustomers,
   getCustomer,
 } = require("../controllers/adminController");
@@ -52,6 +53,7 @@ router.put(
   allowBodyFields(["orderStatus"], { orderStatus: ["string"] }),
   updateOrderStatus,
 );
+router.post("/orders/:id/refund/retry", retryOrderRefund);
 
 router.get(
   "/customers",
