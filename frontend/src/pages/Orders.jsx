@@ -45,6 +45,15 @@ const Orders = () => {
                 {new Date(order.createdAt).toLocaleDateString("en-IN")} ·{" "}
                 {order.items.length} item(s)
               </span>
+              {order.orderStatus === "CANCELLED" && (
+                <span className="mt-2 block text-xs font-semibold text-rose-700">
+                  {order.cancellationReason || "Cancelled"}
+                  {order.cancelledAt &&
+                    ` · ${new Date(order.cancelledAt).toLocaleDateString("en-IN")}`}
+                  {order.paymentMethod === "RAZORPAY" &&
+                    ` · Refund ${String(order.refundStatus || "PENDING").replaceAll("_", " ")}`}
+                </span>
+              )}
             </div>
             <div>
               <strong>₹{order.totalAmount.toLocaleString("en-IN")}</strong>
