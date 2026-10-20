@@ -17,6 +17,7 @@ const orderItemSchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
+    invoiceNumber: { type: String, unique: true, sparse: true },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
