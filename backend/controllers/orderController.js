@@ -5,6 +5,7 @@ const Coupon = require("../models/Coupon");
 const Cart = require("../models/Cart");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const { generateInvoicePdf } = require("../services/invoiceService");
 const { findValidCoupon, normalizeCode } = require("../services/couponService");
 const { attemptOrderRefund } = require("../services/orderRefundService");
 
@@ -23,6 +24,9 @@ const customerOrderProjection =
 const createOrderNumber = () =>
   `SK-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+const createInvoiceNumber = () =>
+  `INV-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
 const badRequest = (message) => {
   const error = new Error(message);
   error.statusCode = 400;
@@ -38,6 +42,40 @@ const getOrders = async (req, res, next) => {
       );
 
     res.json({ success: true, orders });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getOrderInvoice = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    const pdf = await generateInvoicePdf(order);
+    const invoiceNumber = order.invoiceNumber || order.orderNumber || `INV-${String(order._id).slice(-12)}`;
+    const safeFileName = String(invoiceNumber)
+      .replace(/[^a-zA-Z0-9-_]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${safeFileName || "stylekart-invoice"}.pdf"`,
+    );
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).send(pdf);
   } catch (error) {
     next(error);
   }
@@ -352,6 +390,7 @@ const createOrder = async (req, res, next) => {
     const order = await Order.create(
       [{
         orderNumber: createOrderNumber(),
+        invoiceNumber: createInvoiceNumber(),
         user: req.user.id,
         items: orderItems,
         shippingAddress: address.toObject(),
@@ -389,4 +428,10 @@ const createOrder = async (req, res, next) => {
   }
 };
 
-module.exports = { getOrders, getOrder, createOrder, cancelOrder };
+module.exports = {
+  getOrders,
+  getOrder,
+  getOrderInvoice,
+  createOrder,
+  cancelOrder,
+};
