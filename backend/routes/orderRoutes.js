@@ -3,6 +3,7 @@ const express = require("express");
 const {
   createOrder,
   getOrder,
+  getOrderInvoice,
   getOrders,
   cancelOrder,
 } = require("../controllers/orderController");
@@ -31,6 +32,7 @@ router.post(
   }),
   createOrder,
 );
+router.get("/:id/invoice", getOrderInvoice);
 router.get("/:id", getOrder);
 
 module.exports = router;
