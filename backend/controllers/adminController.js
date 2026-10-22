@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const User = require("../models/User");
+const { generateInvoicePdf } = require("../services/invoiceService");
 const { attemptOrderRefund } = require("../services/orderRefundService");
 
 const allowedTransitions = {
@@ -130,6 +131,34 @@ const getAdminOrder = async (req, res, next) => {
     const order = await Order.findById(req.params.id).populate("user", "name email mobile createdAt");
     if (!order) throw createError("Order not found.", 404);
     res.json({ success: true, order });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getAdminOrderInvoice = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      throw createError("Order not found.", 404);
+    }
+
+    const order = await Order.findById(req.params.id).populate("user", "name email mobile createdAt");
+    if (!order) throw createError("Order not found.", 404);
+
+    const pdf = await generateInvoicePdf(order);
+    const invoiceNumber = order.invoiceNumber || order.orderNumber || `INV-${String(order._id).slice(-12)}`;
+    const safeFileName = String(invoiceNumber)
+      .replace(/[^a-zA-Z0-9-_]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${safeFileName || "stylekart-invoice"}.pdf"`,
+    );
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).send(pdf);
   } catch (error) {
     next(error);
   }
@@ -277,6 +306,7 @@ module.exports = {
   getLowStockProducts,
   getAdminOrders,
   getAdminOrder,
+  getAdminOrderInvoice,
   updateOrderStatus,
   retryOrderRefund,
   getCustomers,
