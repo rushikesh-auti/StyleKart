@@ -5,6 +5,7 @@ const {
   getLowStockProducts,
   getAdminOrders,
   getAdminOrder,
+  getAdminOrderInvoice,
   updateOrderStatus,
   retryOrderRefund,
   getCustomers,
@@ -47,6 +48,7 @@ router.get(
   allowQueryFields(["page", "limit", "search", "status"]),
   getAdminOrders,
 );
+router.get("/orders/:id/invoice", getAdminOrderInvoice);
 router.get("/orders/:id", getAdminOrder);
 router.put(
   "/orders/:id/status",
