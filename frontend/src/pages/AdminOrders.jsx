@@ -35,6 +35,7 @@ const AdminOrders = () => {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryingOrderId, setRetryingOrderId] = useState("");
   const load = async () => {
     try {
       setLoading(true);
@@ -91,6 +92,28 @@ const AdminOrders = () => {
       );
     } catch (requestError) {
       setError(requestError.message);
+    }
+  };
+  const retryRefund = async (order) => {
+    try {
+      setRetryingOrderId(order._id);
+      setError("");
+      const response = await adminFetch(
+        `/admin/orders/${order._id}/refund/retry`,
+        { method: "POST" },
+      );
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.message || "Unable to reconcile the refund.");
+      setOrders((current) =>
+        current.map((item) =>
+          item._id === order._id ? { ...item, ...data.order } : item,
+        ),
+      );
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setRetryingOrderId("");
     }
   };
   return (
@@ -214,14 +237,106 @@ const AdminOrders = () => {
                       <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-700">
                         {order.paymentStatus}
                       </span>
+                      <small className="mt-1 block text-slate-500">
+                        {label(order.paymentMethod)}
+                      </small>
+                      {order.refundStatus && order.refundStatus !== "NOT_REQUIRED" && (
+                        <span
+                          className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-black ${
+                            order.refundStatus === "PROCESSED"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : order.refundStatus === "FAILED"
+                                ? "bg-rose-100 text-rose-800"
+                                : order.refundStatus === "PENDING"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          Refund {label(order.refundStatus)}
+                        </span>
+                      )}
+                      {order.providerRefundId && (
+                        <small className="mt-1 block text-slate-500">
+                          Ref {order.providerRefundId}
+                        </small>
+                      )}
                     </td>
                     <td>
                       <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
                         {label(order.orderStatus)}
                       </span>
+                      {order.orderStatus === "CANCELLED" && (
+                        <div className="mt-2 max-w-56 text-xs leading-5 text-slate-600">
+                          <strong className="block text-rose-700">
+                            {order.cancellationReason || "Reason not recorded"}
+                          </strong>
+                          {order.cancellationNote && (
+                            <span className="block">{order.cancellationNote}</span>
+                          )}
+                          {order.cancelledAt && (
+                            <span className="block">
+                              {new Date(order.cancelledAt).toLocaleString("en-IN")}
+                            </span>
+                          )}
+                          <span className="block">
+                            By {label(order.cancellationInitiator)}
+                            {order.cancelledBy?.name
+                              ? ` · ${order.cancelledBy.name}`
+                              : ""}
+                          </span>
+                          {order.inventoryRestoreIssues?.map((issue) => (
+                            <span
+                              className="mt-1 block font-semibold text-amber-700"
+                              key={issue}
+                            >
+                              Stock note: {issue}
+                            </span>
+                          ))}
+                          {order.refundFailureReason && (
+                            <span className="mt-1 block text-rose-700">
+                              {order.refundFailureReason}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div className="flex flex-col gap-1">
+                        <button
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-black text-slate-700 hover:border-slate-950 hover:bg-slate-950 hover:text-white"
+                          onClick={async () => {
+                            try {
+                              const response = await adminFetch(
+                                `/admin/orders/${order._id}/invoice`,
+                                { headers: { Accept: "application/pdf" } },
+                              );
+
+                              if (!response.ok) {
+                                const payload = await response.json().catch(() => ({}));
+                                throw new Error(payload.message || "Unable to download the invoice.");
+                              }
+
+                              const blob = await response.blob();
+                              const contentDisposition = response.headers.get("content-disposition") || "";
+                              const match = contentDisposition.match(/filename\s*=\s*"?([^";]+)"?/i);
+                              const fileName = match?.[1] || `${order.orderNumber || "stylekart-invoice"}.pdf`;
+                              const url = URL.createObjectURL(blob);
+                              const anchor = document.createElement("a");
+                              anchor.href = url;
+                              anchor.download = fileName;
+                              anchor.style.display = "none";
+                              document.body.appendChild(anchor);
+                              anchor.click();
+                              anchor.remove();
+                              setTimeout(() => URL.revokeObjectURL(url), 1000);
+                            } catch (requestError) {
+                              setError(requestError.message);
+                            }
+                          }}
+                          type="button"
+                        >
+                          Download invoice
+                        </button>
                         {transitions[order.orderStatus] && (
                           <button
                             className="rounded-lg bg-slate-950 px-3 py-1.5 text-xs font-black text-white hover:bg-brand-600"
@@ -232,14 +347,17 @@ const AdminOrders = () => {
                             {label(transitions[order.orderStatus])}
                           </button>
                         )}
-                        {["PLACED", "CONFIRMED", "PROCESSING"].includes(
-                          order.orderStatus,
-                        ) && (
+                        {['PENDING', 'FAILED'].includes(order.refundStatus) && (
                           <button
-                            className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-black text-rose-600 hover:bg-rose-50"
-                            onClick={() => update(order, "CANCELLED")}
+                            className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-black text-amber-800 hover:bg-amber-50 disabled:opacity-60"
+                            disabled={retryingOrderId === order._id}
+                            onClick={() => retryRefund(order)}
                           >
-                            Cancel
+                            {retryingOrderId === order._id
+                              ? "Checking..."
+                              : order.refundStatus === "FAILED"
+                                ? "Retry refund"
+                                : "Reconcile refund"}
                           </button>
                         )}
                       </div>
