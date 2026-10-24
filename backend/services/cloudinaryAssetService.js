@@ -15,11 +15,11 @@ const isConfigured = () =>
       process.env.CLOUDINARY_API_SECRET,
   );
 
-const uploadImageBuffer = (buffer) =>
+const uploadImageBuffer = (buffer, folder = "stylekart/products") =>
   new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: "stylekart/products",
+        folder,
         resource_type: "image",
         allowed_formats: ["jpg", "jpeg", "png", "webp"],
         unique_filename: true,
@@ -81,10 +81,33 @@ const cleanupProductImage = async (publicId) => {
   }
 };
 
+const isManagedWardrobeImage = (publicId, userId) =>
+  typeof publicId === "string" &&
+  typeof userId === "string" &&
+  publicId.startsWith(`stylekart/wardrobe/${userId}/`) &&
+  /^stylekart\/wardrobe\/[a-fA-F0-9]{24}\/[A-Za-z0-9_-]+$/.test(publicId);
+
+const cleanupWardrobeImage = async (publicId, userId) => {
+  if (!isManagedWardrobeImage(publicId, userId) || !isConfigured()) return;
+
+  try {
+    const WardrobeItem = require("../models/WardrobeItem");
+    if (await WardrobeItem.exists({ user: userId, imagePublicId: publicId })) return;
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image",
+      invalidate: true,
+    });
+  } catch {
+    console.error("Unable to clean up an unused StyleKart wardrobe image.");
+  }
+};
+
 module.exports = {
   deleteProductImageIfUnused,
   isConfigured,
   isManagedProductImage,
+  isManagedWardrobeImage,
   uploadImageBuffer,
   cleanupProductImage,
+  cleanupWardrobeImage,
 };
