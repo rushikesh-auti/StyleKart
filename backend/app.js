@@ -14,6 +14,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const supportRoutes = require("./routes/supportRoutes.js");
+const wardrobeRoutes = require("./routes/wardrobeRoutes");
 
 const { errorHandler, notFound } = require("./middleware/errorMiddleware");
 const {
@@ -92,6 +93,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/wardrobe", wardrobeRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
