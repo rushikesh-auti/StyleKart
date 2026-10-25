@@ -11,4 +11,15 @@ const authLimiter = rateLimit({
   },
 });
 
-module.exports = { authLimiter };
+const wardrobeUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many wardrobe image uploads. Try again in an hour.",
+  },
+});
+
+module.exports = { authLimiter, wardrobeUploadLimiter };
