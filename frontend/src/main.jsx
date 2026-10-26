@@ -28,6 +28,7 @@ import Orders from "./pages/Orders.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import OrderDetails from "./pages/OrderDetails.jsx";
 import Addresses from "./pages/Addresses.jsx";
+import Wardrobe from "./pages/Wardrobe.jsx";
 
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
@@ -122,6 +123,10 @@ const router = createBrowserRouter([
           {
             path: "/addresses",
             element: <Addresses />,
+          },
+          {
+            path: "/wardrobe",
+            element: <Wardrobe />,
           },
           {
             path: "/orders",
