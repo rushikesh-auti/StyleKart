@@ -18,6 +18,7 @@ import {
   FaRegCreditCard,
   FaRegHeart,
   FaRegUser,
+  FaShirt,
   FaTicket,
   FaUserPen,
   FaXmark,
@@ -271,6 +272,12 @@ const Header = () => {
           </div>
 
           <div className="px-3 pb-3">
+            <Row
+              to="/wardrobe"
+              icon={FaShirt}
+              label="Wardrobe intelligence"
+              onClick={menu.close}
+            />
             <Row
               to="/addresses"
               icon={FaLocationDot}
