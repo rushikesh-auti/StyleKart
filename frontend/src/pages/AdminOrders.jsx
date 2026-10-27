@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import AdminOrderDetailsModal from "../components/AdminOrderDetailsModal";
 import { adminFetch } from "../utils/adminApi";
 
 const statusNames = [
@@ -36,6 +37,7 @@ const AdminOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryingOrderId, setRetryingOrderId] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState("");
   const load = async () => {
     try {
       setLoading(true);
@@ -227,10 +229,52 @@ const AdminOrders = () => {
                       </small>
                     </td>
                     <td>
-                      {order.items.reduce(
-                        (total, item) => total + item.quantity,
-                        0,
-                      )}
+                      <div className="grid min-w-48 gap-2">
+                        {(order.items || []).slice(0, 2).map((item, index) => (
+                          <div
+                            className="flex min-w-0 items-center gap-2"
+                            key={`${item.productId}-${index}`}
+                          >
+                            <div className="relative grid h-12 w-10 shrink-0 place-items-center overflow-hidden rounded-md bg-slate-100 text-[9px] text-slate-400">
+                              {!item.image && "No image"}
+                              {item.image && (
+                                <img
+                                  className="absolute inset-0 h-full w-full object-cover"
+                                  src={item.image}
+                                  alt=""
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="max-w-48 truncate font-semibold text-slate-800">
+                                {item.itemName}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Qty {item.quantity} ·{" "}
+                                ₹
+                                {(
+                                  item.unitPrice * item.quantity
+                                ).toLocaleString("en-IN")}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {order.items?.length > 2 && (
+                          <p className="text-xs font-semibold text-brand-700">
+                            +{order.items.length - 2} more item(s)
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-500">
+                          {(order.items || []).reduce(
+                            (total, item) => total + item.quantity,
+                            0,
+                          )}{" "}
+                          unit(s) total
+                        </p>
+                      </div>
                     </td>
                     <td>₹{order.totalAmount.toLocaleString("en-IN")}</td>
                     <td>
@@ -302,6 +346,13 @@ const AdminOrders = () => {
                     </td>
                     <td>
                       <div className="flex flex-col gap-1">
+                        <button
+                          className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-black text-brand-800 hover:bg-brand-100"
+                          onClick={() => setSelectedOrderId(order._id)}
+                          type="button"
+                        >
+                          View details
+                        </button>
                         <button
                           className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-black text-slate-700 hover:border-slate-950 hover:bg-slate-950 hover:text-white"
                           onClick={async () => {
@@ -389,6 +440,12 @@ const AdminOrders = () => {
             Next
           </button>
         </div>
+      )}
+      {selectedOrderId && (
+        <AdminOrderDetailsModal
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId("")}
+        />
       )}
     </main>
   );
