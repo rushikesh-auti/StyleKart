@@ -469,6 +469,15 @@ const ProductDetails = () => {
             </button>
           </div>
 
+          {!isOutOfStock && (
+            <Link
+              to={`/wardrobe?product=${encodeURIComponent(product.id)}`}
+              className="mt-3 inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3.5 text-sm font-black text-slate-800 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+            >
+              Plan outfits with this product
+            </Link>
+          )}
+
           <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-black [&_h2]:text-slate-950 [&_p]:my-2 [&_p]:text-sm [&_p]:text-slate-600">
             <h2>Product information</h2>
             <p>
