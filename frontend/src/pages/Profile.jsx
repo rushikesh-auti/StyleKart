@@ -74,6 +74,7 @@ const Profile = () => {
           </Link>
           <Link to="/orders">Orders</Link>
           <Link to="/wishlist">Wishlist</Link>
+          <Link to="/wardrobe">Wardrobe intelligence</Link>
           <Link to="/addresses">Addresses</Link>
         </nav>
 
