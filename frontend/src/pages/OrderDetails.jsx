@@ -1,30 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import OrderCancellation from "../components/OrderCancellation";
+import { isOrderCancellable } from "../utils/orderCancellation";
 import { userFetch } from "../utils/userApi";
 
 const timeline = ["PLACED", "CONFIRMED", "SHIPPED", "DELIVERED"];
-const cancellationReasons = [
-  "Ordered by mistake",
-  "Found a better price",
-  "Wrong item or size",
-  "Delivery taking too long",
-  "Changed my mind",
-  "Other",
-];
-const cancellableStatuses = ["PLACED", "CONFIRMED", "PROCESSING"];
 const label = (value) => String(value || "").replaceAll("_", " ");
 
 const OrderDetails = () => {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
-  const [showCancellation, setShowCancellation] = useState(false);
-  const [cancellationReason, setCancellationReason] = useState("");
-  const [cancellationNote, setCancellationNote] = useState("");
-  const [cancelling, setCancelling] = useState(false);
-  const [cancellationError, setCancellationError] = useState("");
-  const [cancellationSuccess, setCancellationSuccess] = useState("");
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   useEffect(() => {
@@ -64,35 +51,6 @@ const OrderDetails = () => {
       : order.paymentMethod === "COD"
         ? "Cash on Delivery"
         : "Online payment";
-  const canCancel = cancellableStatuses.includes(order.orderStatus);
-
-  const cancelOrder = async (event) => {
-    event.preventDefault();
-    if (!cancellationReason || cancelling) return;
-
-    try {
-      setCancelling(true);
-      setCancellationError("");
-      setCancellationSuccess("");
-      const data = await userFetch(`/orders/${id}/cancel`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          reason: cancellationReason,
-          note: cancellationNote,
-        }),
-      });
-      setOrder(data.order);
-      setShowCancellation(false);
-      setCancellationReason("");
-      setCancellationNote("");
-      setCancellationSuccess(data.message || "Order cancelled successfully.");
-    } catch (requestError) {
-      setCancellationError(requestError.message);
-    } finally {
-      setCancelling(false);
-    }
-  };
-
   const downloadInvoice = async () => {
     if (downloadingInvoice) return;
 
@@ -146,16 +104,6 @@ const OrderDetails = () => {
         <h1>Order {order.orderNumber}</h1>
         <p>Placed on {new Date(order.createdAt).toLocaleDateString("en-IN")}</p>
       </header>
-      {cancellationSuccess && (
-        <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
-          {cancellationSuccess}
-        </p>
-      )}
-      {cancellationError && (
-        <p className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
-          {cancellationError}
-        </p>
-      )}
       <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 [&>h2]:mb-5 [&>h2]:text-lg [&>h2]:font-black [&>h2]:text-slate-950 [&_a]:text-sm [&_a]:font-bold [&_a]:text-brand-700">
           {order.orderStatus === "CANCELLED" ? (
@@ -264,21 +212,17 @@ const OrderDetails = () => {
               Back to orders
             </Link>
           </div>
-          {canCancel ? (
-            <div className="mt-4">
-              <button
-                className="w-full rounded-xl border border-rose-200 bg-white px-5 py-3 text-sm font-black text-rose-700 hover:bg-rose-50"
-                onClick={() => {
-                  setCancellationError("");
-                  setShowCancellation(true);
-                }}
-              >
-                Cancel order
-              </button>
-              <p className="mt-2 text-xs text-slate-500">
-                Orders can be cancelled before they are shipped.
-              </p>
-            </div>
+          <div className="mt-4">
+            <OrderCancellation
+              order={order}
+              onCancelled={setOrder}
+              buttonClassName="w-full"
+            />
+          </div>
+          {isOrderCancellable(order.orderStatus) ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Orders can be cancelled before they are shipped.
+            </p>
           ) : (
             order.orderStatus !== "CANCELLED" && (
               <p className="mt-4 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
@@ -292,90 +236,6 @@ const OrderDetails = () => {
           )}
         </aside>
       </section>
-      {showCancellation && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !cancelling) {
-              setShowCancellation(false);
-            }
-          }}
-        >
-          <form
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cancel-order-heading"
-            onSubmit={cancelOrder}
-          >
-            <h2
-              id="cancel-order-heading"
-              className="text-xl font-black text-slate-950"
-            >
-              Cancel this order?
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              This action cannot be undone. Select a reason to continue.
-            </p>
-            <label
-              className="mt-5 block text-sm font-bold text-slate-700"
-              htmlFor="cancellation-reason"
-            >
-              Cancellation reason
-            </label>
-            <select
-              id="cancellation-reason"
-              className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-              required
-              value={cancellationReason}
-              onChange={(event) => setCancellationReason(event.target.value)}
-            >
-              <option value="">Choose a reason</option>
-              {cancellationReasons.map((reason) => (
-                <option value={reason} key={reason}>
-                  {reason}
-                </option>
-              ))}
-            </select>
-            <label
-              className="mt-4 block text-sm font-bold text-slate-700"
-              htmlFor="cancellation-note"
-            >
-              Note (optional)
-            </label>
-            <textarea
-              id="cancellation-note"
-              className="mt-2 min-h-24 w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-              maxLength={500}
-              value={cancellationNote}
-              onChange={(event) => setCancellationNote(event.target.value)}
-            />
-            {cancellationError && (
-              <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">
-                {cancellationError}
-              </p>
-            )}
-            <div className="mt-5 flex justify-end gap-3">
-              <button
-                type="button"
-                className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700"
-                disabled={cancelling}
-                onClick={() => setShowCancellation(false)}
-              >
-                Keep order
-              </button>
-              <button
-                type="submit"
-                className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60"
-                disabled={!cancellationReason || cancelling}
-              >
-                {cancelling ? "Cancelling..." : "Confirm cancellation"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </main>
   );
 };
