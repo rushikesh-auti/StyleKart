@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const app = require("./app");
 const connectDB = require("./config/db");
+const { startInventoryReservationWorker } = require("./services/inventoryReservationWorker");
 
 const requiredEnvironment = ["MONGODB_URI", "JWT_SECRET"];
 const missingEnvironment = requiredEnvironment.filter((key) => !process.env[key]);
@@ -16,8 +17,12 @@ if (process.env.TRUST_PROXY === "true") {
   app.set("trust proxy", 1);
 }
 
-connectDB();
+const startServer = async () => {
+  await connectDB();
+  startInventoryReservationWorker();
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+startServer();
