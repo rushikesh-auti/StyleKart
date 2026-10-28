@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { FaCreditCard, FaMoneyBillWave, FaShieldHalved } from "react-icons/fa6";
@@ -34,6 +34,7 @@ const Checkout = () => {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+  const checkoutRequest = useRef(null);
 
   useEffect(() => {
     userFetch("/addresses")
@@ -60,6 +61,23 @@ const Checkout = () => {
       })),
     [summary.lines],
   );
+  const checkoutSignature = JSON.stringify({
+    selectedAddressId,
+    couponCode,
+    items: requestItems,
+  });
+  const getCheckoutRequestId = () => {
+    if (checkoutRequest.current?.signature !== checkoutSignature) {
+      checkoutRequest.current = {
+        signature: checkoutSignature,
+        id: crypto.randomUUID(),
+      };
+    }
+    return checkoutRequest.current.id;
+  };
+  const invalidStock = summary.lines.find(
+    ({ availableStock, quantity }) => quantity > availableStock,
+  );
 
   const invalidVariant = summary.lines.find(
     ({ entry, product }) =>
@@ -76,6 +94,10 @@ const Checkout = () => {
     if (step === 1 && invalidVariant)
       return setError(
         `Choose the required size/color for ${invalidVariant.product.item_name} before checkout.`,
+      );
+    if (step === 1 && invalidStock)
+      return setError(
+        `${invalidStock.product.item_name} has only ${invalidStock.availableStock} unit(s) available for the selected options. Update your cart to continue.`,
       );
     if (step === 2 && !selectedAddressId)
       return setError("Select a delivery address to continue.");
@@ -95,6 +117,7 @@ const Checkout = () => {
         paymentMethod: "COD",
         couponCode,
         items: requestItems,
+        idempotencyKey: getCheckoutRequestId(),
       }),
     });
     completeOrder(data.order);
@@ -108,6 +131,7 @@ const Checkout = () => {
         addressId: selectedAddressId,
         couponCode,
         items: requestItems,
+        checkoutRequestId: getCheckoutRequestId(),
       }),
     });
 
@@ -135,13 +159,27 @@ const Checkout = () => {
           }
         },
       });
-      checkout.on("payment.failed", (response) => {
-        reject(
-          new Error(
-            response?.error?.description ||
-              "Razorpay payment failed. Please try again.",
-          ),
-        );
+      checkout.on("payment.failed", async (response) => {
+        const orderId = response?.error?.metadata?.order_id;
+        const paymentId = response?.error?.metadata?.payment_id;
+        let failureMessage =
+          response?.error?.description ||
+          "Razorpay payment failed. Please try again.";
+        if (orderId && paymentId) {
+          try {
+            await userFetch("/payments/razorpay/failure", {
+              method: "POST",
+              body: JSON.stringify({
+                razorpay_order_id: orderId,
+                razorpay_payment_id: paymentId,
+              }),
+            });
+          } catch {
+            failureMessage +=
+              " The failure could not be confirmed yet; reserved stock will be released automatically after 15 minutes.";
+          }
+        }
+        reject(new Error(failureMessage));
       });
       checkout.open();
     });
@@ -151,6 +189,12 @@ const Checkout = () => {
     if (invalidVariant) {
       setError(
         `Choose the required size/color for ${invalidVariant.product.item_name} before checkout.`,
+      );
+      return;
+    }
+    if (invalidStock) {
+      setError(
+        `${invalidStock.product.item_name} has only ${invalidStock.availableStock} unit(s) available for the selected options. Update your cart to continue.`,
       );
       return;
     }
