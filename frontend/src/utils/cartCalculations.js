@@ -1,3 +1,5 @@
+import { getVariantStock } from "./productInventory";
+
 export const getCartSummary = (cartEntries, products) => {
   const lines = cartEntries
     .map((entry) => {
@@ -9,15 +11,19 @@ export const getCartSummary = (cartEntries, products) => {
         return null;
       }
 
-      const quantity = Math.min(
-        Math.max(entry.quantity, 1),
-        Math.max(product.stock, 1),
+      const quantity = Math.max(Number(entry.quantity) || 1, 1);
+      const availableStock = getVariantStock(
+        product,
+        entry.selectedSize,
+        entry.selectedColor,
       );
 
       return {
         entry,
         product,
         quantity,
+        availableStock,
+        exceedsStock: quantity > availableStock,
         originalTotal: product.original_price * quantity,
         currentTotal: product.current_price * quantity,
       };

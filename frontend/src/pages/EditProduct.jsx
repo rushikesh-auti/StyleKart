@@ -20,9 +20,10 @@ const emptyFormData = {
   original_price: "",
   current_price: "",
   discount_percentage: 0,
-  stock: 0,
   sizes: [],
   colors: [],
+  inventoryVariants: [],
+  legacyStockToAllocate: undefined,
   return_period: 14,
   delivery_date: "",
   rating: {
@@ -46,7 +47,9 @@ function EditProduct() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(adminApiUrl(`/products/${id}`));
+        const response = await adminFetch(
+          adminApiUrl(`/admin/products/${id}`),
+        );
 
         const data = await response.json().catch(() => ({}));
 
@@ -72,9 +75,14 @@ function EditProduct() {
           original_price: product.original_price ?? "",
           current_price: product.current_price ?? "",
           discount_percentage: product.discount_percentage ?? 0,
-          stock: product.stock ?? 0,
           sizes: Array.isArray(product.sizes) ? product.sizes : [],
           colors: Array.isArray(product.colors) ? product.colors : [],
+          inventoryVariants: Array.isArray(product.inventoryVariants)
+            ? product.inventoryVariants
+                .filter((variant) => variant.active !== false)
+                .map(({ size, color, stock }) => ({ size, color, stock }))
+            : [],
+          legacyStockToAllocate: product.legacyStockToAllocate,
           return_period: product.return_period ?? 14,
           delivery_date: product.delivery_date || "",
           rating: {
@@ -141,12 +149,17 @@ function EditProduct() {
     setSaving(true);
 
     try {
+      const productFields = { ...formData };
+      delete productFields.legacyStockToAllocate;
       const payload = {
-        ...formData,
+        ...productFields,
         original_price: Number(formData.original_price),
         current_price: Number(formData.current_price),
         discount_percentage: Number(formData.discount_percentage),
-        stock: Number(formData.stock),
+        inventoryVariants: formData.inventoryVariants.map((variant) => ({
+          ...variant,
+          stock: Number(variant.stock),
+        })),
         return_period: Number(formData.return_period),
         rating: {
           stars: Number(formData.rating.stars),

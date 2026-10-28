@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
 import { adminFetch } from "../utils/adminApi";
+import { createVariantCombinations } from "../utils/productInventory";
 
 const categories = ["men", "women", "kids", "beauty"];
 const MAX_IMAGE_SIZE_MB = (() => {
@@ -18,6 +19,7 @@ const ProductForm = ({
   submitText = "Save Product",
   loading = false,
   error = "",
+  isEdit = false,
 }) => {
   const [imagePreview, setImagePreview] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -34,17 +36,80 @@ const ProductForm = ({
 
   const handleArrayChange = (event) => {
     const { name, value } = event.target;
+    const nextOptions = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
 
     onChange({
       target: {
         name,
-        value: value
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        value: nextOptions,
       },
     });
+    const sizes = name === "sizes" ? nextOptions : formData.sizes;
+    const colors = name === "colors" ? nextOptions : formData.colors;
+    const currentVariants = formData.inventoryVariants || [];
+    const currentByKey = new Map(
+      currentVariants.map((variant) => [
+        JSON.stringify([variant.size || "", variant.color || ""]),
+        variant,
+      ]),
+    );
+    const inventoryVariants = createVariantCombinations(sizes, colors).map(
+      ({ size, color }) => ({
+        size,
+        color,
+        stock:
+          currentByKey.get(JSON.stringify([size, color]))?.stock || 0,
+      }),
+    );
+    onChange({ target: { name: "inventoryVariants", value: inventoryVariants } });
   };
+
+  const updateVariantStock = (size, color, value) => {
+    const variants = createVariantCombinations(formData.sizes, formData.colors);
+    const currentByKey = new Map(
+      (formData.inventoryVariants || []).map((variant) => [
+        JSON.stringify([variant.size || "", variant.color || ""]),
+        variant,
+      ]),
+    );
+    const inventoryVariants = variants.map((variant) => {
+      const current = currentByKey.get(
+        JSON.stringify([variant.size, variant.color]),
+      );
+      return {
+        ...variant,
+        stock:
+          variant.size === size && variant.color === color
+            ? value
+            : current?.stock || 0,
+      };
+    });
+    onChange({ target: { name: "inventoryVariants", value: inventoryVariants } });
+  };
+
+  const inventoryRows = createVariantCombinations(
+    formData.sizes,
+    formData.colors,
+  ).map(({ size, color }) => ({
+    size,
+    color,
+    stock:
+      formData.inventoryVariants?.find(
+        (variant) => variant.size === size && variant.color === color,
+      )?.stock ?? 0,
+  }));
+  const allocatedVariantStock = inventoryRows.reduce(
+    (total, variant) => total + (Number(variant.stock) || 0),
+    0,
+  );
+  const allocationTarget =
+    Number.isInteger(formData.legacyStockToAllocate) &&
+    formData.legacyStockToAllocate > 0
+    ? formData.legacyStockToAllocate
+    : null;
 
   const handleImageFileChange = async (event) => {
     const file = event.target.files?.[0];
@@ -423,27 +488,6 @@ const ProductForm = ({
 
         <div className="md:col-span-4">
           <label
-            htmlFor="stock"
-            className="mb-2 block text-sm font-bold text-slate-700"
-          >
-            Stock *
-          </label>
-
-          <input
-            id="stock"
-            type="number"
-            name="stock"
-            value={formData.stock}
-            onChange={onChange}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-            min="0"
-            step="1"
-            required
-          />
-        </div>
-
-        <div className="md:col-span-4">
-          <label
             htmlFor="return_period"
             className="mb-2 block text-sm font-bold text-slate-700"
           >
@@ -534,6 +578,64 @@ const ProductForm = ({
           </div>
         </div>
 
+        <div className="md:col-span-12">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+            <h6 className="text-sm font-bold text-slate-700">
+              Available inventory by variant
+            </h6>
+            <span className="text-xs text-slate-500">
+              {allocatedVariantStock} available in total
+            </span>
+          </div>
+          {Number.isInteger(allocationTarget) && (
+            <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+              Allocate exactly {allocationTarget} unit(s) across these
+              variants to complete the legacy inventory migration before
+              saving.
+            </p>
+          )}
+          {!Number.isInteger(allocationTarget) && isEdit && (
+            <p className="mb-3 text-xs text-slate-500">
+              Set the available quantity for each variant. New variants start
+              at zero; quantities for removed variants are retired.
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {inventoryRows.map((variant) => (
+              <label
+                className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm"
+                key={JSON.stringify([variant.size, variant.color])}
+              >
+                <span className="font-semibold text-slate-700">
+                  {variant.size || variant.color
+                    ? [variant.size && `Size ${variant.size}`, variant.color]
+                        .filter(Boolean)
+                        .join(" · ")
+                    : "Standard item"}
+                </span>
+                <input
+                  aria-label={`Stock for ${variant.size || "standard"} ${variant.color || ""}`}
+                  className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-right text-sm"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={variant.stock}
+                  onChange={(event) =>
+                    updateVariantStock(
+                      variant.size,
+                      variant.color,
+                      event.target.value === ""
+                        ? ""
+                        : Number(event.target.value),
+                    )
+                  }
+                  required
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* Rating */}
         <div className="md:col-span-12">
           <h5 className="mb-1 mt-5 text-sm font-black text-slate-950">
@@ -620,9 +722,17 @@ ProductForm.propTypes = {
       PropTypes.string,
       PropTypes.number,
     ]).isRequired,
-    stock: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     sizes: PropTypes.arrayOf(PropTypes.string).isRequired,
     colors: PropTypes.arrayOf(PropTypes.string).isRequired,
+    inventoryVariants: PropTypes.arrayOf(
+      PropTypes.shape({
+        size: PropTypes.string.isRequired,
+        color: PropTypes.string.isRequired,
+        stock: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+          .isRequired,
+      }),
+    ).isRequired,
+    legacyStockToAllocate: PropTypes.number,
     return_period: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
       .isRequired,
     delivery_date: PropTypes.string.isRequired,

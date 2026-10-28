@@ -14,6 +14,11 @@ import {
   addRecentlyViewedProduct,
   getRecentlyViewedProducts,
 } from "../utils/recentlyViewed";
+import {
+  getAvailableProductStock,
+  getVariantStock,
+  hasAvailableVariant,
+} from "../utils/productInventory";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -185,18 +190,29 @@ const ProductDetails = () => {
       item.selectedColor === selectedColor,
   );
   const isInWishlist = wishlistItems.includes(product.id);
-  const isOutOfStock = product.stock <= 0;
+  const totalAvailableStock = getAvailableProductStock(product);
   const needsSizeSelection = product.sizes?.length > 0;
   const needsColorSelection = product.colors?.length > 0;
+  const hasSelectedVariant =
+    (!needsSizeSelection || Boolean(selectedSize)) &&
+    (!needsColorSelection || Boolean(selectedColor));
+  const selectedVariantStock = hasSelectedVariant
+    ? getVariantStock(product, selectedSize, selectedColor)
+    : 0;
+  const isOutOfStock = totalAvailableStock <= 0;
+  const selectedVariantOutOfStock =
+    hasSelectedVariant && selectedVariantStock <= 0;
 
   const stockMessage = isOutOfStock
     ? "Out of stock"
-    : product.stock <= 5
-      ? `Only ${product.stock} left`
-      : "In stock";
+    : !hasSelectedVariant
+      ? "Select options to see availability"
+      : selectedVariantStock <= 5
+        ? `Only ${selectedVariantStock} left for this option`
+        : "In stock";
 
   const updateQuantity = (nextQuantity) => {
-    if (nextQuantity >= 1 && nextQuantity <= product.stock) {
+    if (nextQuantity >= 1 && nextQuantity <= selectedVariantStock) {
       setQuantity(nextQuantity);
     }
   };
@@ -344,7 +360,7 @@ const ProductDetails = () => {
             className={`mt-2 text-sm font-black ${
               isOutOfStock
                 ? "text-rose-600"
-                : product.stock <= 5
+                : hasSelectedVariant && selectedVariantStock <= 5
                   ? "text-amber-700"
                   : "text-emerald-700"
             }`}
@@ -375,8 +391,16 @@ const ProductDetails = () => {
                         ? "border-brand-500 bg-brand-50 text-brand-700"
                         : "border-slate-300 bg-white text-slate-900 hover:border-brand-300"
                     }`}
+                    disabled={
+                      !hasAvailableVariant(
+                        product,
+                        size,
+                        selectedColor,
+                      )
+                    }
                     onClick={() => {
                       setSelectedSize(size);
+                      setQuantity(1);
                       setSelectionError("");
                     }}
                   >
@@ -404,7 +428,17 @@ const ProductDetails = () => {
                         ? "border-brand-500 bg-brand-50 text-brand-700"
                         : "border-slate-300 bg-white text-slate-900 hover:border-brand-300"
                     }`}
-                    onClick={() => setSelectedColor(color)}
+                    disabled={
+                      !hasAvailableVariant(
+                        product,
+                        selectedSize,
+                        color,
+                      )
+                    }
+                    onClick={() => {
+                      setSelectedColor(color);
+                      setQuantity(1);
+                    }}
                   >
                     {color}
                   </button>
@@ -416,7 +450,11 @@ const ProductDetails = () => {
           <section className="mt-6">
             <div className="flex items-center justify-between gap-3 [&_h2]:text-sm [&_h2]:font-black [&_h2]:text-slate-950 [&_span]:text-xs [&_span]:text-slate-500">
               <h2>Quantity</h2>
-              <span>{product.stock} available</span>
+              <span>
+                {hasSelectedVariant
+                  ? `${selectedVariantStock} available`
+                  : "Select options to see stock"}
+              </span>
             </div>
 
             <div className="mt-3 inline-flex items-center overflow-hidden rounded-xl border border-slate-300 [&_button]:grid [&_button]:h-10 [&_button]:w-11 [&_button]:place-items-center [&_button]:bg-white [&_button]:font-black [&_button]:text-slate-900 [&_span]:grid [&_span]:h-10 [&_span]:w-11 [&_span]:place-items-center [&_span]:border-x [&_span]:border-slate-300 [&_span]:font-black">
@@ -432,7 +470,9 @@ const ProductDetails = () => {
 
               <button
                 type="button"
-                disabled={quantity >= product.stock}
+                disabled={
+                  !hasSelectedVariant || quantity >= selectedVariantStock
+                }
                 onClick={() => updateQuantity(quantity + 1)}
               >
                 +
@@ -450,10 +490,15 @@ const ProductDetails = () => {
             <button
               type="button"
               className="rounded-xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white hover:bg-brand-600 disabled:bg-slate-100 disabled:text-slate-400"
-              disabled={isOutOfStock || isInBag}
+              disabled={
+                isOutOfStock ||
+                selectedVariantOutOfStock ||
+                !hasSelectedVariant ||
+                isInBag
+              }
               onClick={addToCart}
             >
-              {isOutOfStock
+              {isOutOfStock || selectedVariantOutOfStock
                 ? "Out of Stock"
                 : isInBag
                   ? "Added to Cart"

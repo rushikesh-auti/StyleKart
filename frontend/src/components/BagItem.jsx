@@ -5,12 +5,18 @@ import { RiDeleteBin5Fill } from "react-icons/ri";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import getProductImageUrl from "../utils/productImageUrl";
+import { getVariantStock } from "../utils/productInventory";
 
 const BagItem = ({ entry, item, quantity }) => {
   const dispatch = useDispatch();
+  const availableStock = getVariantStock(
+    item,
+    entry.selectedSize,
+    entry.selectedColor,
+  );
 
   const updateQuantity = (nextQuantity) => {
-    if (nextQuantity >= 1 && nextQuantity <= item.stock) {
+    if (nextQuantity >= 1 && nextQuantity <= availableStock) {
       dispatch(
         bagActions.updateQuantity({
           productId: entry.productId,
@@ -98,7 +104,7 @@ const BagItem = ({ entry, item, quantity }) => {
 
             <button
               type="button"
-              disabled={quantity >= item.stock}
+              disabled={quantity >= availableStock}
               onClick={() => updateQuantity(quantity + 1)}
             >
               +
@@ -108,17 +114,19 @@ const BagItem = ({ entry, item, quantity }) => {
 
         <p
           className={`mt-3 text-xs font-black ${
-            item.stock <= 0
+            availableStock <= 0
               ? "text-rose-600"
-              : item.stock <= 5
+              : availableStock <= 5
                 ? "text-amber-700"
                 : "text-emerald-700"
           }`}
         >
-          {item.stock <= 0
+          {availableStock <= 0
             ? "Out of stock"
-            : item.stock <= 5
-              ? `Only ${item.stock} left`
+            : quantity > availableStock
+              ? `Only ${availableStock} available; reduce quantity to continue`
+              : availableStock <= 5
+                ? `Only ${availableStock} left`
               : "In stock"}
         </p>
 

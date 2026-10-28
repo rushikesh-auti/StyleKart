@@ -4,6 +4,7 @@ import { FaHeart, FaRegHeart, FaStar } from "react-icons/fa";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import getProductImageUrl from "../utils/productImageUrl";
+import { getAvailableProductStock } from "../utils/productInventory";
 
 const HomeItem = ({ item }) => {
   const dispatch = useDispatch();
@@ -15,7 +16,8 @@ const HomeItem = ({ item }) => {
   );
   const isInBag = bagItems.some((bagItem) => bagItem.productId === item.id);
   const isInWishlist = wishlistItems.includes(item.id);
-  const isOutOfStock = item.stock <= 0;
+  const availableStock = getAvailableProductStock(item);
+  const isOutOfStock = availableStock <= 0;
   const requiresOptions =
     (item.sizes?.length || 0) > 0 || (item.colors?.length || 0) > 0;
   const imagePath = getProductImageUrl(item.image);
@@ -98,12 +100,12 @@ const HomeItem = ({ item }) => {
           )}
         </div>
         <p
-          className={`my-2 min-h-5 text-xs font-bold ${isOutOfStock ? "text-rose-600" : item.stock <= 5 ? "text-amber-700" : "text-emerald-700"}`}
+          className={`my-2 min-h-5 text-xs font-bold ${isOutOfStock ? "text-rose-600" : availableStock <= 5 ? "text-amber-700" : "text-emerald-700"}`}
         >
           {isOutOfStock
             ? "Out of stock"
-            : item.stock <= 5
-              ? `Only ${item.stock} left`
+            : availableStock <= 5
+              ? `Only ${availableStock} left`
               : "In stock"}
         </p>
         <button
