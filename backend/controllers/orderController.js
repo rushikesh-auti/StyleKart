@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 const Address = require("../models/Address");
@@ -8,6 +9,10 @@ const Product = require("../models/Product");
 const { generateInvoicePdf } = require("../services/invoiceService");
 const { findValidCoupon, normalizeCode } = require("../services/couponService");
 const { attemptOrderRefund } = require("../services/orderRefundService");
+const {
+  deductInventory,
+  restoreInventory,
+} = require("../services/inventoryService");
 
 const cancellationReasons = [
   "Ordered by mistake",
@@ -185,28 +190,18 @@ const cancelOrder = async (req, res, next) => {
         throw error;
       }
 
-      const inventoryRestoreIssues = [];
       if (existingOrder.inventoryDeducted) {
-        for (const item of existingOrder.items) {
-          const stockUpdate = await Product.updateOne(
-            { id: item.productId },
-            { $inc: { stock: item.quantity } },
+        const inventoryRestoreIssues = await restoreInventory(
+          existingOrder.items,
+          session,
+        );
+        if (inventoryRestoreIssues.length > 0) {
+          await Order.updateOne(
+            { _id: orderId },
+            { $set: { inventoryRestoreIssues } },
             { session },
           );
-          if (stockUpdate.matchedCount !== 1) {
-            inventoryRestoreIssues.push(
-              `${item.itemName} (${item.productId}) was unavailable when stock was restored.`,
-            );
-          }
         }
-      }
-
-      if (inventoryRestoreIssues.length > 0) {
-        await Order.updateOne(
-          { _id: orderId },
-          { $set: { inventoryRestoreIssues } },
-          { session },
-        );
       }
 
       shouldAttemptRefund = refundStatus === "PENDING";
@@ -243,7 +238,13 @@ const createOrder = async (req, res, next) => {
   const session = await mongoose.startSession();
 
   try {
-    const { addressId, items, paymentMethod = "COD", couponCode = "" } = req.body;
+    const {
+      addressId,
+      items,
+      paymentMethod = "COD",
+      couponCode = "",
+      idempotencyKey,
+    } = req.body;
 
     if (
       typeof addressId !== "string" ||
@@ -257,6 +258,13 @@ const createOrder = async (req, res, next) => {
 
     if (paymentMethod !== "COD") {
       throw badRequest("Use the Razorpay checkout for online payments or choose Cash on Delivery.");
+    }
+    if (
+      typeof idempotencyKey !== "string" ||
+      idempotencyKey.trim().length < 16 ||
+      idempotencyKey.trim().length > 100
+    ) {
+      throw badRequest("A valid checkout request key is required. Refresh and try again.");
     }
 
     const address = await Address.findOne({ _id: addressId, user: req.user.id }).session(session);
@@ -307,6 +315,36 @@ const createOrder = async (req, res, next) => {
       throw badRequest("Coupon code is invalid.");
     }
 
+    const requestHash = crypto
+      .createHash("sha256")
+      .update(
+        JSON.stringify({
+          addressId,
+          items: [...requestedItems].sort((a, b) =>
+            `${a.productId}:${a.selectedSize}:${a.selectedColor}`.localeCompare(
+              `${b.productId}:${b.selectedSize}:${b.selectedColor}`,
+            ),
+          ),
+          couponCode: normalizeCode(couponCode),
+          paymentMethod,
+        }),
+      )
+      .digest("hex");
+    const existingOrder = await Order.findOne({
+      user: req.user.id,
+      idempotencyKey: idempotencyKey.trim(),
+    }).select("+idempotencyHash");
+    if (existingOrder) {
+      if (existingOrder.idempotencyHash !== requestHash) {
+        throw badRequest(
+          "This checkout request key was already used for different order details.",
+          409,
+        );
+      }
+      await Cart.updateOne({ user: req.user.id }, { $set: { items: [] } });
+      return res.json({ success: true, order: existingOrder });
+    }
+
     await session.startTransaction();
 
     const orderItems = [];
@@ -320,10 +358,6 @@ const createOrder = async (req, res, next) => {
         throw badRequest(`Product ${requestedItem.productId} is no longer available.`);
       }
 
-      if (requestedItem.quantity > product.stock) {
-        throw badRequest(`${product.item_name} has only ${product.stock} item(s) left.`);
-      }
-
       if (product.sizes.length > 0 && !product.sizes.includes(requestedItem.selectedSize)) {
         throw badRequest(`Select a valid size for ${product.item_name}.`);
       }
@@ -332,14 +366,17 @@ const createOrder = async (req, res, next) => {
         throw badRequest(`Select a valid color for ${product.item_name}.`);
       }
 
-      const stockUpdate = await Product.updateOne(
-        { _id: product._id, stock: { $gte: requestedItem.quantity } },
-        { $inc: { stock: -requestedItem.quantity } },
-        { session },
+      const variant = product.inventoryVariants.find(
+        (inventoryVariant) =>
+          inventoryVariant.active &&
+          inventoryVariant.size === requestedItem.selectedSize &&
+          inventoryVariant.color === requestedItem.selectedColor,
       );
-
-      if (stockUpdate.modifiedCount !== 1) {
-        throw badRequest(`${product.item_name} is no longer available in that quantity.`);
+      if (!variant) {
+        throw badRequest(
+          `Inventory is not configured for ${product.item_name} and the selected options.`,
+          409,
+        );
       }
 
       totalMrp += product.original_price * requestedItem.quantity;
@@ -355,6 +392,8 @@ const createOrder = async (req, res, next) => {
         originalUnitPrice: product.original_price,
       });
     }
+
+    await deductInventory(orderItems, session);
 
     let couponDiscount = 0;
     let appliedCouponCode = "";
@@ -390,6 +429,8 @@ const createOrder = async (req, res, next) => {
     const order = await Order.create(
       [{
         orderNumber: createOrderNumber(),
+        idempotencyKey: idempotencyKey.trim(),
+        idempotencyHash: requestHash,
         invoiceNumber: createInvoiceNumber(),
         user: req.user.id,
         items: orderItems,
@@ -421,6 +462,42 @@ const createOrder = async (req, res, next) => {
   } catch (error) {
     if (session.inTransaction()) {
       await session.abortTransaction();
+    }
+    if (error.code === 11000 && req.body.idempotencyKey) {
+      const concurrentOrder = await Order.findOne({
+        user: req.user.id,
+        idempotencyKey: req.body.idempotencyKey,
+      });
+      if (concurrentOrder) {
+        const requestHash = crypto
+          .createHash("sha256")
+          .update(
+            JSON.stringify({
+              addressId: req.body.addressId,
+              items: (Array.isArray(req.body.items) ? req.body.items : [])
+                .map((item) => ({
+                  productId: String(item?.productId || "").trim(),
+                  quantity: item?.quantity,
+                  selectedSize: String(item?.selectedSize || "").trim(),
+                  selectedColor: String(item?.selectedColor || "").trim(),
+                }))
+                .sort((a, b) =>
+                  `${a.productId}:${a.selectedSize}:${a.selectedColor}`.localeCompare(
+                    `${b.productId}:${b.selectedSize}:${b.selectedColor}`,
+                  ),
+                ),
+              couponCode: normalizeCode(String(req.body.couponCode || "")),
+              paymentMethod: req.body.paymentMethod || "COD",
+            }),
+          )
+          .digest("hex");
+        const storedOrder = await Order.findById(concurrentOrder._id).select(
+          "+idempotencyHash",
+        );
+        if (storedOrder?.idempotencyHash === requestHash) {
+          return res.json({ success: true, order: concurrentOrder });
+        }
+      }
     }
     next(error);
   } finally {

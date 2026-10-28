@@ -24,11 +24,12 @@ router.patch(
 );
 router.post(
   "/",
-  allowBodyFields(["addressId", "items", "paymentMethod", "couponCode"], {
+  allowBodyFields(["addressId", "items", "paymentMethod", "couponCode", "idempotencyKey"], {
     addressId: ["string"],
     items: ["array"],
     paymentMethod: ["string"],
     couponCode: ["string"],
+    idempotencyKey: ["string"],
   }),
   createOrder,
 );

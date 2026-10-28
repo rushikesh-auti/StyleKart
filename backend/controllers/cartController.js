@@ -1,5 +1,6 @@
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
+const { getVariantStock } = require("../services/inventoryService");
 
 const badRequest = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -72,9 +73,18 @@ const addCartItem = async (req, res, next) => {
 
     const product = await Product.findOne({ id: requested.productId }).lean();
     if (!product) throw badRequest("This product is no longer available.", 404);
-    if (product.stock <= 0) throw badRequest(`${product.item_name} is out of stock.`, 409);
-
     validateVariant(product, requested.selectedSize, requested.selectedColor);
+    const availableStock = getVariantStock(
+      product,
+      requested.selectedSize,
+      requested.selectedColor,
+    );
+    if (availableStock <= 0) {
+      throw badRequest(
+        `${product.item_name} is out of stock for the selected options.`,
+        409,
+      );
+    }
 
     let cart = await Cart.findOne({ user: req.user.id });
     if (!cart) {
@@ -97,8 +107,11 @@ const addCartItem = async (req, res, next) => {
     );
 
     const nextQuantity = (existingItem?.quantity || 0) + requested.quantity;
-    if (nextQuantity > product.stock) {
-      throw badRequest(`${product.item_name} has only ${product.stock} item(s) available.`, 409);
+    if (nextQuantity > availableStock) {
+      throw badRequest(
+        `${product.item_name} has only ${availableStock} item(s) available for the selected options.`,
+        409,
+      );
     }
 
     if (existingItem) {
@@ -141,8 +154,16 @@ const updateCartItem = async (req, res, next) => {
     if (!product) throw badRequest("This product is no longer available.", 404);
     validateVariant(product, requested.selectedSize, requested.selectedColor);
 
-    if (requested.quantity > product.stock) {
-      throw badRequest(`${product.item_name} has only ${product.stock} item(s) available.`, 409);
+    const availableStock = getVariantStock(
+      product,
+      requested.selectedSize,
+      requested.selectedColor,
+    );
+    if (requested.quantity > availableStock) {
+      throw badRequest(
+        `${product.item_name} has only ${availableStock} item(s) available for the selected options.`,
+        409,
+      );
     }
 
     item.quantity = requested.quantity;
