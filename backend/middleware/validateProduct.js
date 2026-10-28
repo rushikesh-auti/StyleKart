@@ -7,7 +7,6 @@ const validateProduct = (req, res, next) => {
     original_price,
     current_price,
     discount_percentage,
-    stock,
     rating,
   } = req.body;
 
@@ -25,9 +24,9 @@ const validateProduct = (req, res, next) => {
     "original_price",
     "current_price",
     "discount_percentage",
-    "stock",
     "sizes",
     "colors",
+    "inventoryVariants",
     "return_period",
     "delivery_date",
     "rating",
@@ -127,13 +126,6 @@ const validateProduct = (req, res, next) => {
   }
 
   if (
-    stock !== undefined &&
-    (typeof stock !== "number" || stock < 0)
-  ) {
-    errors.stock = "Stock must be a valid non-negative number";
-  }
-
-  if (
     req.body.return_period !== undefined &&
     (typeof req.body.return_period !== "number" || req.body.return_period < 0)
   ) {
@@ -194,6 +186,59 @@ const validateProduct = (req, res, next) => {
         req.body[field].some((value) => typeof value !== "string"))
     ) {
       errors[field] = `${field} must be an array of text values`;
+    }
+  }
+
+  if (req.body.inventoryVariants === undefined) {
+    errors.inventoryVariants = "Inventory quantities are required.";
+  } else {
+    const sizes = Array.isArray(req.body.sizes) ? req.body.sizes : [];
+    const colors = Array.isArray(req.body.colors) ? req.body.colors : [];
+    const sizeOptions = sizes.length ? sizes : [""];
+    const colorOptions = colors.length ? colors : [""];
+    const expected = new Set(
+      sizeOptions.flatMap((size) =>
+        colorOptions.map((color) => JSON.stringify([size, color])),
+      ),
+    );
+    const received = new Set();
+    const variants = req.body.inventoryVariants;
+
+    if (!Array.isArray(variants) || variants.length !== expected.size) {
+      errors.inventoryVariants =
+        "Inventory must include one quantity for every size/color combination.";
+    } else {
+      for (const variant of variants) {
+        if (
+          !variant ||
+          typeof variant !== "object" ||
+          Array.isArray(variant) ||
+          Object.keys(variant).some(
+            (field) => !["size", "color", "stock"].includes(field),
+          ) ||
+          typeof variant.size !== "string" ||
+          typeof variant.color !== "string" ||
+          !Number.isInteger(variant.stock) ||
+          variant.stock < 0
+        ) {
+          errors.inventoryVariants =
+            "Each inventory variant must have a size, color, and non-negative whole-number stock.";
+          break;
+        }
+
+        const key = JSON.stringify([variant.size, variant.color]);
+        if (!expected.has(key) || received.has(key)) {
+          errors.inventoryVariants =
+            "Inventory variants must exactly match the product's unique size/color combinations.";
+          break;
+        }
+        received.add(key);
+      }
+
+      if (!errors.inventoryVariants && received.size !== expected.size) {
+        errors.inventoryVariants =
+          "Inventory must include one quantity for every size/color combination.";
+      }
     }
   }
 

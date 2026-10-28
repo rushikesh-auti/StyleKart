@@ -5,6 +5,33 @@ const Product = require("../models/Product");
 const User = require("../models/User");
 const { generateInvoicePdf } = require("../services/invoiceService");
 const { attemptOrderRefund } = require("../services/orderRefundService");
+const { restoreInventory } = require("../services/inventoryService");
+
+const availableStockExpression = {
+  $sum: {
+    $map: {
+      input: {
+        $filter: {
+          input: { $ifNull: ["$inventoryVariants", []] },
+          as: "variant",
+          cond: { $eq: ["$$variant.active", true] },
+        },
+      },
+      as: "variant",
+      in: "$$variant.stock",
+    },
+  },
+};
+
+const queryLowStockProducts = (threshold, limit) => {
+  const pipeline = [
+    { $set: { stock: availableStockExpression } },
+    { $match: { $expr: { $lte: ["$stock", threshold] } } },
+    { $sort: { stock: 1, createdAt: -1 } },
+  ];
+  if (limit) pipeline.push({ $limit: limit });
+  return Product.aggregate(pipeline);
+};
 
 const allowedTransitions = {
   PLACED: ["CONFIRMED"],
@@ -42,10 +69,7 @@ const getDashboard = async (req, res, next) => {
       User.countDocuments({ role: "user" }),
       Product.countDocuments(),
       Order.countDocuments({ orderStatus: { $in: ["PLACED", "CONFIRMED", "PROCESSING"] } }),
-      Product.find({ stock: { $lte: lowStockThreshold } })
-        .select("id item_name company image stock current_price category")
-        .sort({ stock: 1, createdAt: -1 })
-        .limit(8),
+      queryLowStockProducts(lowStockThreshold, 8),
       Order.find()
         .populate("user", "name email")
         .sort({ createdAt: -1 })
@@ -74,9 +98,7 @@ const getDashboard = async (req, res, next) => {
 const getLowStockProducts = async (req, res, next) => {
   try {
     const threshold = Math.min(Math.max(Number(req.query.threshold) || 5, 0), 100);
-    const products = await Product.find({ stock: { $lte: threshold } })
-      .select("id item_name company image stock current_price category sizes colors")
-      .sort({ stock: 1, createdAt: -1 });
+    const products = await queryLowStockProducts(threshold);
 
     res.json({ success: true, threshold, count: products.length, products });
   } catch (error) {
@@ -167,14 +189,7 @@ const getAdminOrderInvoice = async (req, res, next) => {
 const restoreOrderStock = async (order, session) => {
   if (!order.inventoryDeducted || order.inventoryRestoredAt) return;
 
-  for (const item of order.items) {
-    const result = await Product.updateOne(
-      { id: item.productId },
-      { $inc: { stock: item.quantity } },
-      { session },
-    );
-    if (result.matchedCount !== 1) throw createError(`Could not restore stock for ${item.itemName}.`);
-  }
+  order.inventoryRestoreIssues = await restoreInventory(order.items, session);
   order.inventoryRestoredAt = new Date();
 };
 

@@ -16,6 +16,22 @@ const {
 } = require("../services/cloudinaryAssetService");
 const { getWardrobeImageFormat } = require("../services/wardrobeImageValidation");
 
+const availableStockExpression = {
+  $sum: {
+    $map: {
+      input: {
+        $filter: {
+          input: { $ifNull: ["$inventoryVariants", []] },
+          as: "variant",
+          cond: { $eq: ["$$variant.active", true] },
+        },
+      },
+      as: "variant",
+      in: "$$variant.stock",
+    },
+  },
+};
+
 const OCCASIONS = ["college", "office", "interview", "casual outing", "party", "wedding"];
 const ITEM_FIELDS = [
   "name",
@@ -218,17 +234,57 @@ const getWardrobePlans = async (req, res, next) => {
 
     const [wardrobeItems, products] = await Promise.all([
       WardrobeItem.find({ user: req.user.id }).sort({ updatedAt: -1 }).limit(100).lean(),
-      Product.find({ stock: { $gt: 0 } })
-        .select("id category subcategory item_name description image current_price stock sizes colors brand company")
-        .sort({ current_price: 1 })
-        .limit(300)
-        .lean(),
+      Product.aggregate([
+        { $match: { $expr: { $gt: [availableStockExpression, 0] } } },
+        { $set: { stock: availableStockExpression } },
+        { $sort: { current_price: 1 } },
+        { $limit: 300 },
+        {
+          $project: {
+            id: 1,
+            category: 1,
+            subcategory: 1,
+            item_name: 1,
+            description: 1,
+            image: 1,
+            current_price: 1,
+            stock: 1,
+            sizes: 1,
+            colors: 1,
+            brand: 1,
+            company: 1,
+          },
+        },
+      ]),
     ]);
     const selectedProduct = selectedProductId
       ? products.find((product) => product.id === selectedProductId) ||
-        (await Product.findOne({ id: selectedProductId, stock: { $gt: 0 } })
-          .select("id category subcategory item_name description image current_price stock sizes colors brand company")
-          .lean())
+        (await Product.aggregate([
+          {
+            $match: {
+              id: selectedProductId,
+              $expr: { $gt: [availableStockExpression, 0] },
+            },
+          },
+          { $set: { stock: availableStockExpression } },
+          {
+            $project: {
+              id: 1,
+              category: 1,
+              subcategory: 1,
+              item_name: 1,
+              description: 1,
+              image: 1,
+              current_price: 1,
+              stock: 1,
+              sizes: 1,
+              colors: 1,
+              brand: 1,
+              company: 1,
+            },
+          },
+          { $limit: 1 },
+        ]))[0]
       : null;
     if (selectedProductId && !selectedProduct) {
       throw createError("The selected product is no longer available.", 409);
@@ -350,7 +406,10 @@ const saveOutfit = async (req, res, next) => {
     }
     const [ownedItems, catalogProducts] = await Promise.all([
       WardrobeItem.find({ _id: { $in: ownedIds }, user: req.user.id }).select("_id").lean(),
-      Product.find({ id: { $in: catalogIds }, stock: { $gt: 0 } }).select("id current_price").lean(),
+      Product.find({
+        id: { $in: catalogIds },
+        $expr: { $gt: [availableStockExpression, 0] },
+      }).select("id current_price").lean(),
     ]);
     if (ownedItems.length !== ownedIds.length) throw createError("One or more wardrobe items are no longer available.", 409);
     if (catalogProducts.length !== catalogIds.length) throw createError("One or more products are no longer available.", 409);

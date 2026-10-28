@@ -1,5 +1,11 @@
 const Product = require("../models/Product");
+const Order = require("../models/Order");
+const PaymentAttempt = require("../models/PaymentAttempt");
 const { cleanupProductImage } = require("../services/cloudinaryAssetService");
+const {
+  createInventorySnapshotFilter,
+  createVariantCombinations,
+} = require("../services/inventoryService");
 
 const escapeRegex = (value = "") =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -118,13 +124,51 @@ const getProducts = async (req, res, next) => {
 
     if (availability === "in-stock") {
       conditions.push({
-        stock: { $gt: 0 },
+        $expr: {
+          $gt: [
+            {
+              $sum: {
+                $map: {
+                  input: {
+                    $filter: {
+                      input: { $ifNull: ["$inventoryVariants", []] },
+                      as: "variant",
+                      cond: { $eq: ["$$variant.active", true] },
+                    },
+                  },
+                  as: "variant",
+                  in: "$$variant.stock",
+                },
+              },
+            },
+            0,
+          ],
+        },
       });
     }
 
     if (availability === "out-of-stock") {
       conditions.push({
-        stock: 0,
+        $expr: {
+          $eq: [
+            {
+              $sum: {
+                $map: {
+                  input: {
+                    $filter: {
+                      input: { $ifNull: ["$inventoryVariants", []] },
+                      as: "variant",
+                      cond: { $eq: ["$$variant.active", true] },
+                    },
+                  },
+                  as: "variant",
+                  in: "$$variant.stock",
+                },
+              },
+            },
+            0,
+          ],
+        },
       });
     }
 
@@ -198,9 +242,7 @@ const getProducts = async (req, res, next) => {
 
 const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findOne({
-      id: req.params.id,
-    });
+    const product = await Product.findOne({ id: req.params.id });
 
     if (!product) {
       return res.status(404).json({
@@ -218,9 +260,34 @@ const getProductById = async (req, res, next) => {
   }
 };
 
+const getAdminProductById = async (req, res, next) => {
+  try {
+    const product = await Product.findOne({ id: req.params.id }).select(
+      "+legacyStockToAllocate",
+    );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.status(200).json({ success: true, product });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createProduct = async (req, res, next) => {
   try {
-    const product = await Product.create(req.productInput);
+    const productInput = {
+      ...req.productInput,
+      inventoryVariants: (req.productInput.inventoryVariants || []).map(
+        (variant) => ({ ...variant, active: true }),
+      ),
+    };
+    const product = await Product.create(productInput);
 
     res.status(201).json({
       success: true,
@@ -235,7 +302,9 @@ const createProduct = async (req, res, next) => {
 
 const updateProduct = async (req, res, next) => {
   try {
-    const existingProduct = await Product.findOne({ id: req.params.id });
+    const existingProduct = await Product.findOne({ id: req.params.id }).select(
+      "+legacyStockToAllocate",
+    );
 
     if (!existingProduct) {
       await cleanupProductImage(req.productInput.imagePublicId);
@@ -253,20 +322,94 @@ const updateProduct = async (req, res, next) => {
       req.productInput.imagePublicId = "";
     }
 
+    const submittedVariants = req.productInput.inventoryVariants || [];
+    const expectedCombinations = createVariantCombinations(
+      req.productInput.sizes || existingProduct.sizes,
+      req.productInput.colors || existingProduct.colors,
+    );
+    const submittedKeys = new Set(
+      submittedVariants.map((variant) =>
+        JSON.stringify([variant.size, variant.color]),
+      ),
+    );
+    const expectedKeys = new Set(
+      expectedCombinations.map(({ size, color }) =>
+        JSON.stringify([size, color]),
+      ),
+    );
+    if (
+      submittedVariants.length !== expectedKeys.size ||
+      [...expectedKeys].some((key) => !submittedKeys.has(key))
+    ) {
+      const error = new Error(
+        "Inventory must include every size/color combination before saving.",
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (existingProduct.legacyStockToAllocate > 0) {
+      const allocated = submittedVariants.reduce(
+        (total, variant) => total + variant.stock,
+        0,
+      );
+      if (allocated !== existingProduct.legacyStockToAllocate) {
+        const error = new Error(
+          `Allocate exactly ${existingProduct.legacyStockToAllocate} legacy item(s) across the variants before saving.`,
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+
+    const submittedWithActiveState = submittedVariants.map((variant) => ({
+      ...variant,
+      active: true,
+    }));
+    const retainedInactiveVariants = existingProduct.inventoryVariants
+      .filter(
+        (variant) =>
+          !expectedKeys.has(JSON.stringify([variant.size, variant.color])),
+      )
+      .map((variant) => ({
+        size: variant.size,
+        color: variant.color,
+        stock: variant.stock,
+        active: false,
+      }));
+
+    const productUpdate = {
+      ...req.productInput,
+      inventoryVariants: [
+        ...submittedWithActiveState,
+        ...retainedInactiveVariants,
+      ],
+    };
+    const updateOperation = { $set: productUpdate };
+    if (Number.isInteger(existingProduct.legacyStockToAllocate)) {
+      updateOperation.$unset = { legacyStockToAllocate: "" };
+    }
+
+    const inventorySnapshot = existingProduct.inventoryVariants.map(
+      ({ size, color, stock, active }) => ({ size, color, stock, active }),
+    );
     const product = await Product.findOneAndUpdate(
-      { id: req.params.id },
-      req.productInput,
+      createInventorySnapshotFilter(req.params.id, inventorySnapshot),
+      updateOperation,
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       },
     );
 
     if (!product) {
       await cleanupProductImage(req.productInput.imagePublicId);
-      return res.status(404).json({
+      const currentProduct = await Product.exists({ id: req.params.id });
+      return res.status(currentProduct ? 409 : 404).json({
         success: false,
-        message: "Product not found",
+        message: currentProduct
+          ? "Inventory changed while this product was being edited. Refresh and try again."
+          : "Product not found",
       });
     }
 
@@ -285,6 +428,18 @@ const updateProduct = async (req, res, next) => {
 
 const deleteProduct = async (req, res, next) => {
   try {
+    const activeAttempt = await PaymentAttempt.findOne({
+      status: { $in: ["CREATING", "CREATED"] },
+      "snapshot.items.productId": req.params.id,
+    }).select("_id");
+    if (activeAttempt) {
+      const error = new Error(
+        "This product cannot be deleted while a payment checkout is active.",
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+
     const product = await Product.findOneAndDelete({
       id: req.params.id,
     });
@@ -310,6 +465,7 @@ const deleteProduct = async (req, res, next) => {
 module.exports = {
   getProducts,
   getProductById,
+  getAdminProductById,
   createProduct,
   updateProduct,
   deleteProduct,
