@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "seed": "node seed/seedProducts.js",
     "create-admin": "node scripts/createAdmin.js",
+    "migrate:inventory": "node scripts/migrateInventory.js",
     "test": "node --test"
   },
   "keywords": [],

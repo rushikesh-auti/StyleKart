@@ -17,13 +17,15 @@ const paymentAttemptItemSchema = new mongoose.Schema(
 const paymentAttemptSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    razorpayOrderId: { type: String, required: true, unique: true, index: true },
+    razorpayOrderId: { type: String, unique: true, sparse: true, index: true },
+    checkoutRequestId: { type: String, required: true, trim: true },
+    checkoutHash: { type: String, required: true },
     amount: { type: Number, required: true, min: 1 },
     currency: { type: String, default: "INR" },
     status: {
       type: String,
-      enum: ["CREATED", "PAID", "FAILED", "REFUNDED"],
-      default: "CREATED",
+      enum: ["CREATING", "CREATED", "PAID", "FAILED", "REFUNDED", "EXPIRED"],
+      default: "CREATING",
       index: true,
     },
     snapshot: {
@@ -52,10 +54,22 @@ const paymentAttemptSchema = new mongoose.Schema(
     order: { type: mongoose.Schema.Types.ObjectId, ref: "Order", default: null },
     failureReason: { type: String, default: "" },
     expiresAt: { type: Date, required: true },
+    inventoryReservedAt: { type: Date },
+    reservationReleasedAt: { type: Date },
+    purgeAt: { type: Date, required: true },
+    lateRefundStatus: {
+      type: String,
+      enum: ["NOT_REQUIRED", "PENDING", "PROCESSED", "FAILED"],
+      default: "NOT_REQUIRED",
+    },
+    lateRefundId: { type: String, default: "" },
+    lateRefundRequestUncertain: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
 
-paymentAttemptSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+paymentAttemptSchema.index({ user: 1, checkoutRequestId: 1 }, { unique: true });
+paymentAttemptSchema.index({ status: 1, expiresAt: 1 });
+paymentAttemptSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("PaymentAttempt", paymentAttemptSchema);

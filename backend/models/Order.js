@@ -17,6 +17,8 @@ const orderItemSchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
+    idempotencyKey: { type: String, trim: true },
+    idempotencyHash: { type: String, select: false },
     invoiceNumber: { type: String, unique: true, sparse: true },
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -130,6 +132,13 @@ orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ user: 1, orderStatus: 1, createdAt: -1 });
 orderSchema.index({ orderStatus: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
+orderSchema.index(
+  { user: 1, idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { idempotencyKey: { $type: "string" } },
+  },
+);
 orderSchema.index(
   { "paymentDetails.razorpayOrderId": 1 },
   {

@@ -1,5 +1,15 @@
 const mongoose = require("mongoose");
 
+const inventoryVariantSchema = new mongoose.Schema(
+  {
+    size: { type: String, default: "", trim: true },
+    color: { type: String, default: "", trim: true },
+    stock: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    active: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
 const productSchema = new mongoose.Schema(
   {
     id: {
@@ -69,11 +79,6 @@ const productSchema = new mongoose.Schema(
       min: 0,
       max: 100,
     },
-    stock: {
-      type: Number,
-      default: 100,
-      min: 0,
-    },
     sizes: {
       type: [String],
       default: [],
@@ -81,6 +86,16 @@ const productSchema = new mongoose.Schema(
     colors: {
       type: [String],
       default: [],
+    },
+    inventoryVariants: {
+      type: [inventoryVariantSchema],
+      default: [],
+    },
+    legacyStockToAllocate: {
+      type: Number,
+      min: 0,
+      validate: Number.isInteger,
+      select: false,
     },
     return_period: {
       type: Number,
@@ -107,8 +122,17 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 );
+
+productSchema.virtual("stock").get(function getAvailableStock() {
+  return this.inventoryVariants.reduce(
+    (total, variant) => total + (variant.active ? variant.stock : 0),
+    0,
+  );
+});
 
 productSchema.index({
   category: 1,
@@ -117,12 +141,12 @@ productSchema.index({
 });
 productSchema.index({ category: 1, createdAt: -1 });
 productSchema.index({ category: 1, "rating.stars": -1, "rating.count": -1 });
-productSchema.index({ category: 1, stock: 1 });
+productSchema.index({ category: 1, "inventoryVariants.stock": 1 });
 productSchema.index({ category: 1, sizes: 1, current_price: 1 });
 productSchema.index({ category: 1, colors: 1, current_price: 1 });
 productSchema.index({ current_price: 1 });
 productSchema.index({ discount_percentage: -1 });
-productSchema.index({ stock: 1 });
+productSchema.index({ "inventoryVariants.stock": 1 });
 productSchema.index({ brand: 1 });
 productSchema.index({ company: 1 });
 productSchema.index(
