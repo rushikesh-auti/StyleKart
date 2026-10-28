@@ -4,8 +4,12 @@ const Address = require("../models/Address");
 const Coupon = require("../models/Coupon");
 const Cart = require("../models/Cart");
 const Order = require("../models/Order");
-const Product = require("../models/Product");
+const PaymentAttempt = require("../models/PaymentAttempt");
 const { findValidCoupon, normalizeCode } = require("./couponService");
+const {
+  createInventoryError,
+  getVariantStock,
+} = require("./inventoryService");
 
 const badRequest = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -55,14 +59,32 @@ const getCheckoutSnapshot = async ({ userId, addressId, items, couponCode = "" }
     const product = await Product.findOne({ id: requestedItem.productId }).lean();
 
     if (!product) throw badRequest(`Product ${requestedItem.productId} is no longer available.`);
-    if (requestedItem.quantity > product.stock) {
-      throw badRequest(`${product.item_name} has only ${product.stock} item(s) left.`);
-    }
     if (Array.isArray(product.sizes) && product.sizes.length > 0 && !product.sizes.includes(requestedItem.selectedSize)) {
       throw badRequest(`Select a valid size for ${product.item_name}.`);
     }
     if (Array.isArray(product.colors) && product.colors.length > 0 && !product.colors.includes(requestedItem.selectedColor)) {
       throw badRequest(`Select a valid color for ${product.item_name}.`);
+    }
+    const availableStock = getVariantStock(
+      product,
+      requestedItem.selectedSize,
+      requestedItem.selectedColor,
+    );
+    if (availableStock < requestedItem.quantity) {
+      if (!product.inventoryVariants?.some((variant) =>
+        variant.active &&
+        variant.size === requestedItem.selectedSize &&
+        variant.color === requestedItem.selectedColor,
+      )) {
+        throw createInventoryError(
+          `Inventory is not configured for ${product.item_name} and the selected options.`,
+          409,
+        );
+      }
+      throw createInventoryError(
+        `${product.item_name} has only ${availableStock} item(s) available for the selected options.`,
+        409,
+      );
     }
 
     totalMrp += product.original_price * requestedItem.quantity;
@@ -117,65 +139,114 @@ const getCheckoutSnapshot = async ({ userId, addressId, items, couponCode = "" }
   };
 };
 
-const finalizePaidOrder = async ({ userId, snapshot, paymentDetails }) => {
+const finalizePaidOrder = async ({
+  userId,
+  snapshot,
+  paymentDetails,
+  paymentAttemptId,
+}) => {
   const session = await mongoose.startSession();
   try {
-    await session.startTransaction();
-
-    for (const item of snapshot.items) {
-      const stockUpdate = await Product.updateOne(
-        { id: item.productId, stock: { $gte: item.quantity } },
-        { $inc: { stock: -item.quantity } },
-        { session },
-      );
-      if (stockUpdate.modifiedCount !== 1) {
-        throw badRequest(`${item.itemName} is no longer available in the requested quantity.`, 409);
-      }
-    }
-
-    if (snapshot.priceSummary.couponCode) {
-      const couponUsage = await Coupon.updateOne(
-        {
-          code: snapshot.priceSummary.couponCode,
-          active: true,
-          expiryDate: { $gt: new Date() },
-          $expr: { $lt: ["$usedCount", "$usageLimit"] },
-        },
-        { $inc: { usedCount: 1 } },
-        { session },
-      );
-      if (couponUsage.modifiedCount !== 1) {
-        throw badRequest("This coupon is no longer available.", 409);
-      }
-    }
-
-    const [order] = await Order.create(
-      [{
-        orderNumber: createOrderNumber(),
+    let order;
+    await session.withTransaction(async () => {
+      const attempt = await PaymentAttempt.findOne({
+        _id: paymentAttemptId,
         user: userId,
-        items: snapshot.items,
-        shippingAddress: snapshot.shippingAddress,
-        paymentMethod: "RAZORPAY",
-        inventoryDeducted: true,
-        paymentStatus: "PAID",
-        orderStatus: "CONFIRMED",
-        paymentDetails,
-        priceSummary: snapshot.priceSummary,
-        totalAmount: snapshot.totalAmount,
-      }],
-      { session },
-    );
+        status: "CREATED",
+        inventoryReservedAt: { $exists: true },
+        expiresAt: { $gt: new Date() },
+      }).session(session);
+      if (!attempt) {
+        throw badRequest(
+          "The payment reservation expired or is no longer available.",
+          409,
+        );
+      }
 
-    await Cart.updateOne(
-      { user: userId },
-      { $set: { items: [] } },
-      { session },
-    );
+      const existingOrder = await Order.findOne({
+        user: userId,
+        "paymentDetails.razorpayOrderId": paymentDetails.razorpayOrderId,
+      }).session(session);
+      if (existingOrder) {
+        order = existingOrder;
+        await PaymentAttempt.updateOne(
+          { _id: attempt._id, status: "CREATED" },
+          {
+            $set: {
+              status: "PAID",
+              razorpayPaymentId: paymentDetails.razorpayPaymentId,
+              order: existingOrder._id,
+            },
+          },
+          { session },
+        );
+        return;
+      }
 
-    await session.commitTransaction();
+      if (snapshot.priceSummary.couponCode) {
+        const couponUsage = await Coupon.updateOne(
+          {
+            code: snapshot.priceSummary.couponCode,
+            active: true,
+            expiryDate: { $gt: new Date() },
+            $expr: { $lt: ["$usedCount", "$usageLimit"] },
+          },
+          { $inc: { usedCount: 1 } },
+          { session },
+        );
+        if (couponUsage.modifiedCount !== 1) {
+          throw badRequest("This coupon is no longer available.", 409);
+        }
+      }
+
+      const [createdOrder] = await Order.create(
+        [{
+          orderNumber: createOrderNumber(),
+          idempotencyKey: `razorpay:${paymentDetails.razorpayOrderId}`,
+          user: userId,
+          items: snapshot.items,
+          shippingAddress: snapshot.shippingAddress,
+          paymentMethod: "RAZORPAY",
+          inventoryDeducted: true,
+          paymentStatus: "PAID",
+          orderStatus: "CONFIRMED",
+          paymentDetails,
+          priceSummary: snapshot.priceSummary,
+          totalAmount: snapshot.totalAmount,
+        }],
+        { session },
+      );
+
+      const attemptUpdate = await PaymentAttempt.updateOne(
+        {
+          _id: attempt._id,
+          status: "CREATED",
+          inventoryReservedAt: { $exists: true },
+          expiresAt: { $gt: new Date() },
+        },
+        {
+          $set: {
+            status: "PAID",
+            razorpayPaymentId: paymentDetails.razorpayPaymentId,
+            order: createdOrder._id,
+          },
+        },
+        { session },
+      );
+      if (attemptUpdate.modifiedCount !== 1) {
+        throw badRequest("Payment reservation changed while finalizing the order.", 409);
+      }
+
+      await Cart.updateOne(
+        { user: userId },
+        { $set: { items: [] } },
+        { session },
+      );
+      order = createdOrder;
+    });
+
     return order;
   } catch (error) {
-    if (session.inTransaction()) await session.abortTransaction();
     throw error;
   } finally {
     await session.endSession();
