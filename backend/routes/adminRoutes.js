@@ -11,6 +11,7 @@ const {
   getCustomers,
   getCustomer,
 } = require("../controllers/adminController");
+const { getAdminProductById } = require("../controllers/productController");
 
 const { protect } = require("../middleware/authMiddleware");
 const {
@@ -37,6 +38,7 @@ router.delete(
 );
 
 router.get("/dashboard", getDashboard);
+router.get("/products/:id", getAdminProductById);
 router.get(
   "/inventory/low-stock",
   allowQueryFields(["threshold"]),
