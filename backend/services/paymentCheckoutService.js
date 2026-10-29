@@ -10,6 +10,9 @@ const {
   createInventoryError,
   getVariantStock,
 } = require("./inventoryService");
+const {
+  createInitialDeliveryData,
+} = require("./deliveryEstimateService");
 
 const badRequest = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -199,6 +202,10 @@ const finalizePaidOrder = async ({
         }
       }
 
+      const placedAt = new Date();
+      const initialDeliveryData = createInitialDeliveryData(placedAt, {
+        confirmedAtCreation: true,
+      });
       const [createdOrder] = await Order.create(
         [{
           orderNumber: createOrderNumber(),
@@ -210,6 +217,8 @@ const finalizePaidOrder = async ({
           inventoryDeducted: true,
           paymentStatus: "PAID",
           orderStatus: "CONFIRMED",
+          createdAt: placedAt,
+          ...initialDeliveryData,
           paymentDetails,
           priceSummary: snapshot.priceSummary,
           totalAmount: snapshot.totalAmount,

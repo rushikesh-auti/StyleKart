@@ -10,6 +10,9 @@ const { generateInvoicePdf } = require("../services/invoiceService");
 const { findValidCoupon, normalizeCode } = require("../services/couponService");
 const { attemptOrderRefund } = require("../services/orderRefundService");
 const {
+  createInitialDeliveryData,
+} = require("../services/deliveryEstimateService");
+const {
   deductInventory,
   restoreInventory,
 } = require("../services/inventoryService");
@@ -43,7 +46,7 @@ const getOrders = async (req, res, next) => {
     const orders = await Order.find({ user: req.user.id })
       .sort({ createdAt: -1 })
       .select(
-        "orderNumber items totalAmount orderStatus paymentStatus paymentMethod createdAt cancellationReason cancellationNote cancelledAt cancellationInitiator refundStatus providerRefundId",
+        "orderNumber items totalAmount orderStatus paymentStatus paymentMethod createdAt deliveryEstimate fulfillmentEvents deliveryTracking cancellationReason cancellationNote cancelledAt cancellationInitiator refundStatus providerRefundId",
       );
 
     res.json({ success: true, orders });
@@ -426,9 +429,11 @@ const createOrder = async (req, res, next) => {
 
     const discount = totalMrp - subtotal;
     const delivery = subtotal >= 999 ? 0 : 99;
+    const placedAt = new Date();
+    const initialDeliveryData = createInitialDeliveryData(placedAt);
     const order = await Order.create(
-      [{
-        orderNumber: createOrderNumber(),
+    [{
+      orderNumber: createOrderNumber(),
         idempotencyKey: idempotencyKey.trim(),
         idempotencyHash: requestHash,
         invoiceNumber: createInvoiceNumber(),
@@ -436,6 +441,8 @@ const createOrder = async (req, res, next) => {
         items: orderItems,
         shippingAddress: address.toObject(),
         paymentMethod,
+        createdAt: placedAt,
+        ...initialDeliveryData,
         inventoryDeducted: true,
         priceSummary: {
           totalMrp,
