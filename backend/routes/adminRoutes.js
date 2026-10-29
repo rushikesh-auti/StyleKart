@@ -54,7 +54,22 @@ router.get("/orders/:id/invoice", getAdminOrderInvoice);
 router.get("/orders/:id", getAdminOrder);
 router.put(
   "/orders/:id/status",
-  allowBodyFields(["orderStatus"], { orderStatus: ["string"] }),
+  allowBodyFields(
+    [
+      "orderStatus",
+      "trackingReference",
+      "revisedDeliveryStartDate",
+      "revisedDeliveryEndDate",
+      "delayReason",
+    ],
+    {
+      orderStatus: ["string"],
+      trackingReference: ["string"],
+      revisedDeliveryStartDate: ["string"],
+      revisedDeliveryEndDate: ["string"],
+      delayReason: ["string"],
+    },
+  ),
   updateOrderStatus,
 );
 router.post("/orders/:id/refund/retry", retryOrderRefund);
