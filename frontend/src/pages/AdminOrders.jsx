@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminOrderDetailsModal from "../components/AdminOrderDetailsModal";
 import { adminFetch } from "../utils/adminApi";
+import {
+  getDeliveryDurationLabel,
+  formatDeliveryWindow,
+  formatFulfillmentDate,
+  formatFulfillmentTimestamp,
+} from "../utils/deliveryEstimate";
 
 const statusNames = [
   "",
@@ -189,6 +195,7 @@ const AdminOrders = () => {
                 <th>Amount</th>
                 <th>Payment</th>
                 <th>Status</th>
+                <th>Delivery / tracking</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -196,7 +203,7 @@ const AdminOrders = () => {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-4 py-12 text-center text-slate-500"
                   >
                     Loading orders...
@@ -205,7 +212,7 @@ const AdminOrders = () => {
               ) : orders.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-4 py-12 text-center text-slate-500"
                   >
                     No orders found.
@@ -218,7 +225,7 @@ const AdminOrders = () => {
                       <strong>{order.orderNumber}</strong>
                       <br />
                       <small className="text-slate-500">
-                        {new Date(order.createdAt).toLocaleDateString("en-IN")}
+                        {formatFulfillmentDate(order.createdAt)}
                       </small>
                     </td>
                     <td>
@@ -319,7 +326,7 @@ const AdminOrders = () => {
                           )}
                           {order.cancelledAt && (
                             <span className="block">
-                              {new Date(order.cancelledAt).toLocaleString("en-IN")}
+                              {formatFulfillmentTimestamp(order.cancelledAt)}
                             </span>
                           )}
                           <span className="block">
@@ -342,6 +349,68 @@ const AdminOrders = () => {
                             </span>
                           )}
                         </div>
+                      )}
+                    </td>
+                    <td>
+                      {order.deliveryEstimate?.originalStartDate ? (
+                        <div className="grid gap-1 text-xs">
+                          {order.deliveryEstimate.revisedStartDate ? (
+                            <>
+                              <span className="text-slate-500">
+                                Original:{" "}
+                                {formatDeliveryWindow({
+                                  startDate: order.deliveryEstimate.originalStartDate,
+                                  endDate: order.deliveryEstimate.originalEndDate,
+                                })}
+                              </span>
+                              <strong className="text-amber-800">
+                                Revised:{" "}
+                                {formatDeliveryWindow({
+                                  startDate: order.deliveryEstimate.revisedStartDate,
+                                  endDate: order.deliveryEstimate.revisedEndDate,
+                                })}
+                              </strong>
+                            </>
+                          ) : (
+                            <strong className="text-emerald-800">
+                              {getDeliveryDurationLabel(order.deliveryEstimate)}:{" "}
+                              {formatDeliveryWindow({
+                                startDate: order.deliveryEstimate.originalStartDate,
+                                endDate: order.deliveryEstimate.originalEndDate,
+                              })}
+                            </strong>
+                          )}
+                          {["CANCELLED", "DELIVERED", "RETURN_REQUESTED", "RETURNED", "REFUNDED"].includes(order.orderStatus) && (
+                            <span className="text-slate-500">
+                              No active delivery estimate
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500">
+                          No estimate recorded
+                        </span>
+                      )}
+                      {order.fulfillmentEvents
+                        ?.filter((event) =>
+                          ["SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(
+                            event.status,
+                          ),
+                        )
+                        .slice(-1)
+                        .map((event) => (
+                          <span
+                            className="mt-1 block text-xs text-slate-600"
+                            key={`${event.status}-${event.occurredAt}`}
+                          >
+                            {label(event.status)} ·{" "}
+                            {formatFulfillmentDate(event.occurredAt)}
+                          </span>
+                        ))}
+                      {order.deliveryTracking?.trackingReference && (
+                        <span className="mt-1 block text-xs text-slate-600">
+                          Internal/manual: {order.deliveryTracking.trackingReference}
+                        </span>
                       )}
                     </td>
                     <td>
@@ -445,6 +514,15 @@ const AdminOrders = () => {
         <AdminOrderDetailsModal
           orderId={selectedOrderId}
           onClose={() => setSelectedOrderId("")}
+          onOrderUpdated={(updatedOrder) =>
+            setOrders((current) =>
+              current.map((item) =>
+                item._id === updatedOrder._id
+                  ? { ...item, ...updatedOrder }
+                  : item,
+              ),
+            )
+          }
         />
       )}
     </main>

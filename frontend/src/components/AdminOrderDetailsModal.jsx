@@ -1,14 +1,16 @@
 import PropTypes from "prop-types";
 import { useEffect, useState } from "react";
 import { adminFetch } from "../utils/adminApi";
+import {
+  getDeliveryDurationLabel,
+  formatDeliveryDate,
+  formatFulfillmentTimestamp,
+} from "../utils/deliveryEstimate";
 
 const label = (value) => String(value || "").replaceAll("_", " ");
 
 const formatCurrency = (value) =>
   `₹${Number(value || 0).toLocaleString("en-IN")}`;
-
-const formatDate = (value) =>
-  value ? new Date(value).toLocaleString("en-IN") : "";
 
 const ProductImage = ({ src, alt, className }) => (
   <div
@@ -34,11 +36,18 @@ ProductImage.propTypes = {
   className: PropTypes.string.isRequired,
 };
 
-const AdminOrderDetailsModal = ({ orderId, onClose }) => {
+const AdminOrderDetailsModal = ({ orderId, onClose, onOrderUpdated }) => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [trackingReference, setTrackingReference] = useState("");
+  const [revisedStartDate, setRevisedStartDate] = useState("");
+  const [revisedEndDate, setRevisedEndDate] = useState("");
+  const [delayReason, setDelayReason] = useState("");
+  const [savingDelivery, setSavingDelivery] = useState(false);
+  const [deliveryError, setDeliveryError] = useState("");
+  const [deliverySuccess, setDeliverySuccess] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,6 +64,10 @@ const AdminOrderDetailsModal = ({ orderId, onClose }) => {
           throw new Error(data.message || "Unable to load order details.");
         }
         setOrder(data.order);
+        setTrackingReference(data.order.deliveryTracking?.trackingReference || "");
+        setRevisedStartDate(data.order.deliveryEstimate?.revisedStartDate || "");
+        setRevisedEndDate(data.order.deliveryEstimate?.revisedEndDate || "");
+        setDelayReason(data.order.deliveryEstimate?.delayReason || "");
       } catch (requestError) {
         if (requestError.name !== "AbortError") {
           setError(requestError.message);
@@ -79,6 +92,59 @@ const AdminOrderDetailsModal = ({ orderId, onClose }) => {
 
   const address = order?.shippingAddress;
   const priceSummary = order?.priceSummary;
+  const canReviseDelivery = Boolean(
+    order?.deliveryEstimate?.originalStartDate &&
+      !["CANCELLED", "DELIVERED", "RETURN_REQUESTED", "RETURNED", "REFUNDED"].includes(
+        order?.orderStatus,
+      ),
+  );
+  const canEditTracking = ["SHIPPED", "OUT_FOR_DELIVERY"].includes(
+    order?.orderStatus,
+  );
+  const hasDeliveryChanges =
+    (canEditTracking &&
+      trackingReference !== (order?.deliveryTracking?.trackingReference || "")) ||
+    (revisedStartDate !== (order?.deliveryEstimate?.revisedStartDate || "") ||
+      revisedEndDate !== (order?.deliveryEstimate?.revisedEndDate || "") ||
+      delayReason !== (order?.deliveryEstimate?.delayReason || ""));
+
+  const saveDeliveryUpdate = async (event) => {
+    event.preventDefault();
+    if (savingDelivery) return;
+
+    try {
+      setSavingDelivery(true);
+      setDeliveryError("");
+      setDeliverySuccess("");
+      const body = {};
+      if (canEditTracking) body.trackingReference = trackingReference;
+      if (
+        revisedStartDate !== (order.deliveryEstimate?.revisedStartDate || "") ||
+        revisedEndDate !== (order.deliveryEstimate?.revisedEndDate || "") ||
+        delayReason !== (order.deliveryEstimate?.delayReason || "")
+      ) {
+        body.revisedDeliveryStartDate = revisedStartDate;
+        body.revisedDeliveryEndDate = revisedEndDate;
+        body.delayReason = delayReason;
+      }
+
+      const response = await adminFetch(`/admin/orders/${orderId}/status`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update delivery details.");
+      }
+      setOrder(data.order);
+      onOrderUpdated(data.order);
+      setDeliverySuccess("Delivery details updated.");
+    } catch (requestError) {
+      setDeliveryError(requestError.message);
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
 
   return (
     <div
@@ -347,7 +413,7 @@ const AdminOrderDetailsModal = ({ orderId, onClose }) => {
                             Cancelled at
                           </dt>
                           <dd className="text-slate-800">
-                            {formatDate(order.cancelledAt)}
+                            {formatFulfillmentTimestamp(order.cancelledAt)}
                           </dd>
                         </div>
                       )}
@@ -383,7 +449,7 @@ const AdminOrderDetailsModal = ({ orderId, onClose }) => {
                             Last refund attempt
                           </dt>
                           <dd className="text-slate-800">
-                            {formatDate(order.refundAttemptedAt)}
+                            {formatFulfillmentTimestamp(order.refundAttemptedAt)}
                           </dd>
                         </div>
                       )}
@@ -408,6 +474,127 @@ const AdminOrderDetailsModal = ({ orderId, onClose }) => {
                   )}
                 </section>
               </div>
+
+              <section className="rounded-xl border border-slate-200 p-4">
+                <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">
+                  Delivery estimate and internal tracking
+                </h3>
+                <dl className="mb-4 grid gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs text-slate-500">
+                      Original estimate ({getDeliveryDurationLabel(order.deliveryEstimate)})
+                    </dt>
+                    <dd className="font-semibold text-slate-900">
+                      {order.deliveryEstimate?.originalStartDate
+                        ? `${formatDeliveryDate(order.deliveryEstimate.originalStartDate)} – ${formatDeliveryDate(order.deliveryEstimate.originalEndDate)}`
+                        : "No estimate recorded"}
+                    </dd>
+                  </div>
+                  {order.deliveryEstimate?.revisedStartDate && (
+                    <div>
+                      <dt className="text-xs text-slate-500">Revised estimate</dt>
+                      <dd className="font-semibold text-amber-800">
+                        {formatDeliveryDate(order.deliveryEstimate.revisedStartDate)} –{" "}
+                        {formatDeliveryDate(order.deliveryEstimate.revisedEndDate)}
+                      </dd>
+                      <p className="text-xs text-slate-600">
+                        {order.deliveryEstimate.delayReason}
+                      </p>
+                    </div>
+                  )}
+                  {order.fulfillmentEvents?.map((event) => (
+                    <div key={`${event.status}-${event.occurredAt}`}>
+                      <dt className="text-xs text-slate-500">{label(event.status)}</dt>
+                      <dd className="text-slate-900">
+                        {formatFulfillmentTimestamp(event.occurredAt)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mb-4 text-xs text-slate-600">
+                  Estimate only. Tracking is internal/manual; no live carrier updates are connected.
+                </p>
+                {["CANCELLED", "DELIVERED", "RETURN_REQUESTED", "RETURNED", "REFUNDED"].includes(
+                  order.orderStatus,
+                ) && (
+                  <p className="mb-4 text-xs font-semibold text-slate-600">
+                    This order has no active delivery promise; dates above are retained for reference.
+                  </p>
+                )}
+                {order.deliveryTracking?.trackingReference && (
+                  <p className="mb-4 text-sm font-semibold text-slate-800">
+                    Internal/manual tracking reference:{" "}
+                    {order.deliveryTracking.trackingReference}
+                  </p>
+                )}
+                {canReviseDelivery || canEditTracking ? (
+                  <form className="grid gap-3" onSubmit={saveDeliveryUpdate}>
+                    {canEditTracking && (
+                      <label className="grid gap-1 text-sm font-semibold text-slate-700">
+                        Manual tracking reference
+                        <input
+                          className="rounded-lg border border-slate-300 px-3 py-2 font-normal"
+                          maxLength={100}
+                          value={trackingReference}
+                          onChange={(event) => setTrackingReference(event.target.value)}
+                        />
+                      </label>
+                    )}
+                    {canReviseDelivery && (
+                      <>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <label className="grid gap-1 text-sm font-semibold text-slate-700">
+                            Revised delivery start
+                            <input
+                              className="rounded-lg border border-slate-300 px-3 py-2 font-normal"
+                              type="date"
+                              min={order.deliveryEstimate?.revisedStartDate || order.deliveryEstimate?.originalStartDate}
+                              value={revisedStartDate}
+                              onChange={(event) => setRevisedStartDate(event.target.value)}
+                            />
+                          </label>
+                          <label className="grid gap-1 text-sm font-semibold text-slate-700">
+                            Revised delivery end
+                            <input
+                              className="rounded-lg border border-slate-300 px-3 py-2 font-normal"
+                              type="date"
+                              min={order.deliveryEstimate?.revisedEndDate || order.deliveryEstimate?.originalEndDate}
+                              value={revisedEndDate}
+                              onChange={(event) => setRevisedEndDate(event.target.value)}
+                            />
+                          </label>
+                        </div>
+                        <label className="grid gap-1 text-sm font-semibold text-slate-700">
+                          Delay reason
+                          <textarea
+                            className="min-h-20 rounded-lg border border-slate-300 px-3 py-2 font-normal"
+                            maxLength={500}
+                            value={delayReason}
+                            onChange={(event) => setDelayReason(event.target.value)}
+                          />
+                        </label>
+                      </>
+                    )}
+                    {deliveryError && (
+                      <p className="text-sm font-bold text-rose-700" role="alert">
+                        {deliveryError}
+                      </p>
+                    )}
+                    {deliverySuccess && (
+                      <p className="text-sm font-bold text-emerald-700" role="status">
+                        {deliverySuccess}
+                      </p>
+                    )}
+                    <button
+                      className="justify-self-start rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white hover:bg-brand-600 disabled:opacity-60"
+                      disabled={savingDelivery || !hasDeliveryChanges}
+                      type="submit"
+                    >
+                      {savingDelivery ? "Saving..." : "Save delivery update"}
+                    </button>
+                  </form>
+                ) : null}
+              </section>
             </div>
           )}
         </div>
@@ -419,6 +606,7 @@ const AdminOrderDetailsModal = ({ orderId, onClose }) => {
 AdminOrderDetailsModal.propTypes = {
   orderId: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
+  onOrderUpdated: PropTypes.func.isRequired,
 };
 
 export default AdminOrderDetailsModal;
