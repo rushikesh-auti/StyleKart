@@ -8,6 +8,7 @@ import { getCartSummary } from "../utils/cartCalculations";
 import getProductImageUrl from "../utils/productImageUrl";
 import { loadRazorpay } from "../utils/razorpay";
 import { userFetch } from "../utils/userApi";
+import { getDeliveryDurationLabel } from "../utils/deliveryEstimate";
 
 const steps = ["Cart", "Address", "Delivery", "Payment"];
 const buttonPrimary =
@@ -416,7 +417,8 @@ const Checkout = () => {
                 <span>
                   <strong>Standard delivery</strong>
                   <br />
-                  Arrives in 3-5 business days ·{" "}
+                  {getDeliveryDurationLabel()} from order placement. This is a
+                  calendar-day estimate, not a guaranteed delivery date. ·{" "}
                   {summary.delivery === 0 ? "Free" : `₹${summary.delivery}`}
                 </span>
               </label>

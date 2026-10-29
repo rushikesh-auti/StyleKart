@@ -19,6 +19,7 @@ import {
   getVariantStock,
   hasAvailableVariant,
 } from "../utils/productInventory";
+import { getDeliveryDurationLabel } from "../utils/deliveryEstimate";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -533,9 +534,10 @@ const ProductDetails = () => {
               returns
             </p>
             <p>
-              <strong>Delivery:</strong>{" "}
-              {product.delivery_date ||
-                "Delivery details available at checkout"}
+              <strong>Indicative delivery:</strong>{" "}
+              {getDeliveryDurationLabel()} after order placement.
+              This is an estimate, not a guaranteed date; your order estimate
+              is set when you place it.
             </p>
           </section>
         </div>

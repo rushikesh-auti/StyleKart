@@ -4,8 +4,22 @@ import { Link, useParams } from "react-router-dom";
 import OrderCancellation from "../components/OrderCancellation";
 import { isOrderCancellable } from "../utils/orderCancellation";
 import { userFetch } from "../utils/userApi";
+import {
+  getDeliveryDurationLabel,
+  formatDeliveryWindow,
+  formatFulfillmentDate,
+  formatFulfillmentTimestamp,
+  getActiveDeliveryWindow,
+} from "../utils/deliveryEstimate";
 
-const timeline = ["PLACED", "CONFIRMED", "SHIPPED", "DELIVERED"];
+const timeline = [
+  "PLACED",
+  "CONFIRMED",
+  "PROCESSING",
+  "SHIPPED",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+];
 const label = (value) => String(value || "").replaceAll("_", " ");
 
 const OrderDetails = () => {
@@ -35,15 +49,17 @@ const OrderDetails = () => {
       </main>
     );
 
-  const currentIndex =
-    {
-      PLACED: 0,
-      CONFIRMED: 1,
-      PROCESSING: 1,
-      SHIPPED: 2,
-      OUT_FOR_DELIVERY: 2,
-      DELIVERED: 3,
-    }[order.orderStatus] ?? 0;
+  const currentIndex = timeline.indexOf(order.orderStatus);
+  const timelineIndex =
+    currentIndex >= 0
+      ? currentIndex
+      : ["RETURN_REQUESTED", "RETURNED", "REFUNDED"].includes(order.orderStatus)
+        ? timeline.indexOf("DELIVERED")
+        : 0;
+  const deliveryWindow = getActiveDeliveryWindow(order);
+  const deliveredEvent = order.fulfillmentEvents?.find(
+    (event) => event.status === "DELIVERED",
+  );
 
   const paymentLabel =
     order.paymentMethod === "RAZORPAY"
@@ -102,7 +118,7 @@ const OrderDetails = () => {
               : "Order tracking"}
         </p>
         <h1>Order {order.orderNumber}</h1>
-        <p>Placed on {new Date(order.createdAt).toLocaleDateString("en-IN")}</p>
+        <p>Placed on {formatFulfillmentDate(order.createdAt)}</p>
       </header>
       <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 [&>h2]:mb-5 [&>h2]:text-lg [&>h2]:font-black [&>h2]:text-slate-950 [&_a]:text-sm [&_a]:font-bold [&_a]:text-brand-700">
@@ -112,7 +128,7 @@ const OrderDetails = () => {
               <p>
                 {order.cancellationReason || "Cancellation requested"}
                 {order.cancelledAt &&
-                  ` · ${new Date(order.cancelledAt).toLocaleString("en-IN")}`}
+                  ` · ${formatFulfillmentTimestamp(order.cancelledAt)}`}
               </p>
               {order.cancellationNote && (
                 <p className="mt-2 text-rose-800">{order.cancellationNote}</p>
@@ -127,27 +143,77 @@ const OrderDetails = () => {
           ) : (
             <>
               <h2>Tracking timeline</h2>
-              <div className="mb-8 grid grid-cols-4 [&>div]:relative [&>div]:grid [&>div]:justify-items-center [&>div]:gap-2 [&>div]:text-center [&>div]:text-[11px] [&>div]:font-black [&>div]:text-slate-400 [&_span]:z-10 [&_span]:grid [&_span]:h-8 [&_span]:w-8 [&_span]:place-items-center [&_span]:rounded-full [&_span]:bg-slate-200 [&_span]:text-slate-500">
-                {timeline.map((status, index) => (
-                  <div
-                    className={
-                      index <= currentIndex ? "!text-brand-700" : "text-slate-400"
-                    }
-                    key={status}
-                  >
-                    <span
-                      className={
-                        index <= currentIndex
-                          ? "!bg-brand-600 !text-white"
-                          : "bg-slate-200 text-slate-500"
-                      }
+              <div className="mb-8 grid grid-cols-2 gap-y-5 sm:grid-cols-3 lg:grid-cols-6 [&>div]:grid [&>div]:justify-items-center [&>div]:gap-2 [&>div]:text-center [&>div]:text-[11px] [&>div]:font-black [&>div]:text-slate-400 [&_span]:z-10 [&_span]:grid [&_span]:h-8 [&_span]:w-8 [&_span]:place-items-center [&_span]:rounded-full [&_span]:bg-slate-200 [&_span]:text-slate-500">
+                {timeline.map((status, index) => {
+                  const event = order.fulfillmentEvents?.find(
+                    (item) => item.status === status,
+                  );
+                  const reached = index <= timelineIndex;
+                  return (
+                    <div
+                      className={reached ? "!text-brand-700" : "text-slate-400"}
+                      key={status}
                     >
-                      {index + 1}
-                    </span>
-                    <strong>{status}</strong>
-                  </div>
-                ))}
+                      <span
+                        className={
+                          reached
+                            ? "!bg-brand-600 !text-white"
+                            : "bg-slate-200 text-slate-500"
+                        }
+                      >
+                        {index + 1}
+                      </span>
+                      <strong>{label(status)}</strong>
+                      {event?.occurredAt && (
+                        <small className="font-medium text-slate-500">
+                          {formatFulfillmentTimestamp(event.occurredAt)}
+                        </small>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              {deliveryWindow && (
+                <section className="mb-7 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                  <h3 className="font-black">
+                    {deliveryWindow.revised
+                      ? "Revised delivery estimate"
+                      : getDeliveryDurationLabel(order.deliveryEstimate)}
+                  </h3>
+                  <p className="mt-1">
+                    Expected delivery: {formatDeliveryWindow(deliveryWindow)}
+                  </p>
+                  {deliveryWindow.revised && (
+                    <p className="mt-2 text-xs text-emerald-900">
+                      {getDeliveryDurationLabel(order.deliveryEstimate)} from
+                      {" "}order placement. Original estimate:{" "}
+                      {formatDeliveryWindow({
+                        startDate: order.deliveryEstimate?.originalStartDate,
+                        endDate: order.deliveryEstimate?.originalEndDate,
+                      })}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-emerald-800">
+                    This is a configurable estimate, not a live carrier update.
+                  </p>
+                  {deliveryWindow.revised && order.deliveryEstimate?.delayReason && (
+                    <p className="mt-2 text-xs text-emerald-900">
+                      Update: {order.deliveryEstimate.delayReason}
+                    </p>
+                  )}
+                  {order.deliveryTracking?.trackingReference && (
+                    <p className="mt-2 text-xs font-bold">
+                      Internal/manual tracking reference:{" "}
+                      {order.deliveryTracking.trackingReference}
+                    </p>
+                  )}
+                </section>
+              )}
+              {order.orderStatus === "DELIVERED" && deliveredEvent?.occurredAt && (
+                <p className="mb-7 rounded-xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+                  Delivered on {formatFulfillmentDate(deliveredEvent.occurredAt)}
+                </p>
+              )}
             </>
           )}
           <h2>Items</h2>
@@ -173,6 +239,27 @@ const OrderDetails = () => {
         </div>
         <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 [&>h2]:mb-5 [&>h2]:text-lg [&>h2]:font-black [&>h2]:text-slate-950 [&>p]:my-3 [&>p]:flex [&>p]:justify-between [&>p]:gap-4 [&>p]:text-sm [&>p]:text-slate-600 [&_hr]:my-4 [&_hr]:border-slate-200">
           <h2>Delivery and total</h2>
+          {deliveryWindow && (
+            <p>
+              <span>
+                {deliveryWindow.revised
+                  ? "Revised estimate"
+                  : getDeliveryDurationLabel(order.deliveryEstimate)}
+              </span>
+              <strong>Expected {formatDeliveryWindow(deliveryWindow)}</strong>
+            </p>
+          )}
+          {deliveryWindow?.revised && order.deliveryEstimate?.delayReason && (
+            <p className="text-xs text-amber-700">
+              Revised estimate: {order.deliveryEstimate.delayReason}
+            </p>
+          )}
+          {order.orderStatus === "DELIVERED" && deliveredEvent?.occurredAt && (
+            <p>
+              <span>Delivered</span>
+              <strong>{formatFulfillmentTimestamp(deliveredEvent.occurredAt)}</strong>
+            </p>
+          )}
           <p>
             {order.shippingAddress.fullName}
             <br />

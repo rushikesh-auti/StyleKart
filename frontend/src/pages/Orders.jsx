@@ -3,6 +3,11 @@ import { Link } from "react-router-dom";
 
 import OrderCancellation from "../components/OrderCancellation";
 import { userFetch } from "../utils/userApi";
+import {
+  getDeliveryDurationLabel,
+  formatDeliveryWindow,
+  getActiveDeliveryWindow,
+} from "../utils/deliveryEstimate";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -34,52 +39,84 @@ const Orders = () => {
             No orders yet. <Link to="/products">Start shopping</Link>.
           </p>
         )}
-        {orders.map((order) => (
-          <article
-            className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 hover:border-brand-300 hover:bg-brand-50/30 sm:flex-row sm:items-center sm:justify-between"
-            key={order._id}
-          >
-            <Link
-              className="flex flex-1 flex-col gap-4 text-slate-900 no-underline sm:flex-row sm:items-center sm:justify-between [&_span]:text-sm [&_span]:text-slate-500"
-              to={`/orders/${order._id}`}
+        {orders.map((order) => {
+          const deliveryWindow = getActiveDeliveryWindow(order);
+          return (
+            <article
+              className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 hover:border-brand-300 hover:bg-brand-50/30 sm:flex-row sm:items-center sm:justify-between"
+              key={order._id}
             >
-              <div>
-                <strong>{order.orderNumber}</strong>
-                <span>
-                  {new Date(order.createdAt).toLocaleDateString("en-IN")} ·{" "}
-                  {order.items.length} item(s)
-                </span>
-                {order.orderStatus === "CANCELLED" && (
-                  <span className="mt-2 block text-xs font-semibold text-rose-700">
-                    {order.cancellationReason || "Cancelled"}
-                    {order.cancelledAt &&
-                      ` · ${new Date(order.cancelledAt).toLocaleDateString("en-IN")}`}
-                    {order.paymentMethod === "RAZORPAY" &&
-                      ` · Refund ${String(order.refundStatus || "PENDING").replaceAll("_", " ")}`}
+              <Link
+                className="flex flex-1 flex-col gap-4 text-slate-900 no-underline sm:flex-row sm:items-center sm:justify-between [&_span]:text-sm [&_span]:text-slate-500"
+                to={`/orders/${order._id}`}
+              >
+                <div>
+                  <strong>{order.orderNumber}</strong>
+                  <span>
+                    {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                    })}{" "}
+                    · {order.items.length} item(s)
                   </span>
-                )}
-              </div>
-              <div>
-                <strong>₹{order.totalAmount.toLocaleString("en-IN")}</strong>
-                <span className="text-xs font-black uppercase tracking-wide text-brand-700">
-                  {order.orderStatus}
-                </span>
-              </div>
-            </Link>
-            <OrderCancellation
-              order={order}
-              onCancelled={(updatedOrder) =>
-                setOrders((currentOrders) =>
-                  currentOrders.map((currentOrder) =>
-                    currentOrder._id === updatedOrder._id
-                      ? { ...currentOrder, ...updatedOrder }
-                      : currentOrder,
-                  ),
-                )
-              }
-            />
-          </article>
-        ))}
+                  {deliveryWindow && (
+                    <>
+                      <span className="mt-1 block !text-xs font-semibold !text-emerald-700">
+                        {deliveryWindow.revised
+                          ? "Revised estimate"
+                          : "Expected delivery"}
+                        : {formatDeliveryWindow(deliveryWindow)}
+                      </span>
+                      <span className="mt-1 block !text-xs !text-slate-500">
+                        {getDeliveryDurationLabel(order.deliveryEstimate)}
+                        {deliveryWindow.revised
+                          ? " from order placement (original estimate)"
+                          : ""}
+                      </span>
+                      {deliveryWindow.revised && (
+                        <span className="mt-1 block !text-xs">
+                          Original estimate:{" "}
+                          {formatDeliveryWindow({
+                            startDate: order.deliveryEstimate.originalStartDate,
+                            endDate: order.deliveryEstimate.originalEndDate,
+                          })}
+                        </span>
+                      )}
+                    </>
+                  )}
+                  {order.orderStatus === "CANCELLED" && (
+                    <span className="mt-2 block text-xs font-semibold text-rose-700">
+                      {order.cancellationReason || "Cancelled"}
+                      {order.cancelledAt &&
+                        ` · ${new Date(order.cancelledAt).toLocaleDateString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                        })}`}
+                      {order.paymentMethod === "RAZORPAY" &&
+                        ` · Refund ${String(order.refundStatus || "PENDING").replaceAll("_", " ")}`}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <strong>₹{order.totalAmount.toLocaleString("en-IN")}</strong>
+                  <span className="text-xs font-black uppercase tracking-wide text-brand-700">
+                    {order.orderStatus}
+                  </span>
+                </div>
+              </Link>
+              <OrderCancellation
+                order={order}
+                onCancelled={(updatedOrder) =>
+                  setOrders((currentOrders) =>
+                    currentOrders.map((currentOrder) =>
+                      currentOrder._id === updatedOrder._id
+                        ? { ...currentOrder, ...updatedOrder }
+                        : currentOrder,
+                    ),
+                  )
+                }
+              />
+            </article>
+          );
+        })}
       </section>
     </main>
   );
