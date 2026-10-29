@@ -6,6 +6,13 @@ const User = require("../models/User");
 const { generateInvoicePdf } = require("../services/invoiceService");
 const { attemptOrderRefund } = require("../services/orderRefundService");
 const { restoreInventory } = require("../services/inventoryService");
+const {
+  validateRevisedDeliveryWindow,
+} = require("../services/deliveryEstimateService");
+const {
+  canTransitionOrderStatus,
+  recordFulfillmentEvent,
+} = require("../services/orderFulfillmentService");
 
 const availableStockExpression = {
   $sum: {
@@ -31,19 +38,6 @@ const queryLowStockProducts = (threshold, limit) => {
   ];
   if (limit) pipeline.push({ $limit: limit });
   return Product.aggregate(pipeline);
-};
-
-const allowedTransitions = {
-  PLACED: ["CONFIRMED"],
-  CONFIRMED: ["PROCESSING"],
-  PROCESSING: ["SHIPPED"],
-  SHIPPED: ["OUT_FOR_DELIVERY"],
-  OUT_FOR_DELIVERY: ["DELIVERED"],
-  DELIVERED: ["RETURN_REQUESTED"],
-  RETURN_REQUESTED: ["RETURNED"],
-  RETURNED: ["REFUNDED"],
-  CANCELLED: [],
-  REFUNDED: [],
 };
 
 const createError = (message, statusCode = 400) => {
@@ -132,7 +126,7 @@ const getAdminOrders = async (req, res, next) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .select(
-          "orderNumber user items totalAmount orderStatus paymentStatus paymentMethod createdAt cancellationReason cancellationNote cancelledAt cancelledBy cancellationInitiator inventoryRestoreIssues refundStatus refundProvider providerRefundId refundFailureReason",
+          "orderNumber user items totalAmount orderStatus paymentStatus paymentMethod createdAt deliveryEstimate fulfillmentEvents deliveryTracking cancellationReason cancellationNote cancelledAt cancelledBy cancellationInitiator inventoryRestoreIssues refundStatus refundProvider providerRefundId refundFailureReason",
         ),
       Order.countDocuments(filter),
     ]);
@@ -197,22 +191,99 @@ const updateOrderStatus = async (req, res, next) => {
   const session = await mongoose.startSession();
   try {
     const nextStatus = String(req.body.orderStatus || "").trim();
-    if (!nextStatus) throw createError("Select an order status.");
+    const hasTrackingReference = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "trackingReference",
+    );
+    const revisionFields = [
+      "revisedDeliveryStartDate",
+      "revisedDeliveryEndDate",
+      "delayReason",
+    ];
+    const hasRevision = revisionFields.some((field) =>
+      Object.prototype.hasOwnProperty.call(req.body, field),
+    );
+    if (!nextStatus && !hasTrackingReference && !hasRevision) {
+      throw createError("Provide a status or a tracking update.");
+    }
     if (!mongoose.isValidObjectId(req.params.id)) throw createError("Order not found.", 404);
 
     await session.startTransaction();
     const order = await Order.findById(req.params.id).session(session);
     if (!order) throw createError("Order not found.", 404);
 
-    if (!allowedTransitions[order.orderStatus]?.includes(nextStatus)) {
+    if (
+      nextStatus &&
+      !canTransitionOrderStatus(order.orderStatus, nextStatus)
+    ) {
       throw createError(`Cannot change an ${order.orderStatus} order to ${nextStatus}.`);
+    }
+
+    const effectiveStatus = nextStatus || order.orderStatus;
+    if (hasTrackingReference) {
+      if (!order.deliveryTracking) order.deliveryTracking = {};
+      const trackingReference = req.body.trackingReference.trim();
+      if (trackingReference.length > 100) {
+        throw createError("Tracking reference must be 100 characters or fewer.");
+      }
+      if (
+        trackingReference &&
+        !["SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(effectiveStatus)
+      ) {
+        throw createError("A tracking reference can only be recorded after shipment.");
+      }
+      order.deliveryTracking.trackingReference = trackingReference;
+      order.deliveryTracking.mode = "MANUAL";
+    }
+
+    if (hasRevision) {
+      if (
+        revisionFields.some(
+          (field) => !Object.prototype.hasOwnProperty.call(req.body, field),
+        )
+      ) {
+        throw createError("Provide both revised delivery dates and a delay reason.");
+      }
+      if (
+        ["CANCELLED", "DELIVERED", "RETURN_REQUESTED", "RETURNED", "REFUNDED"].includes(
+          effectiveStatus,
+        )
+      ) {
+        throw createError("A delivery estimate cannot be revised for this order status.");
+      }
+
+      if (!order.deliveryEstimate) order.deliveryEstimate = {};
+      const { deliveryEstimate } = order;
+      if (!deliveryEstimate.originalStartDate || !deliveryEstimate.originalEndDate) {
+        throw createError("This order does not have an original delivery estimate.");
+      }
+      const revisedWindow = validateRevisedDeliveryWindow({
+        startDate: req.body.revisedDeliveryStartDate,
+        endDate: req.body.revisedDeliveryEndDate,
+        delayReason: req.body.delayReason,
+        originalStartDate: deliveryEstimate.originalStartDate,
+        originalEndDate: deliveryEstimate.originalEndDate,
+        previousStartDate: deliveryEstimate.revisedStartDate,
+        previousEndDate: deliveryEstimate.revisedEndDate,
+      });
+
+      deliveryEstimate.revisedStartDate = revisedWindow.startDate;
+      deliveryEstimate.revisedEndDate = revisedWindow.endDate;
+      deliveryEstimate.revisedAt = new Date();
+      deliveryEstimate.delayReason = revisedWindow.delayReason;
     }
 
     if (nextStatus === "RETURNED") await restoreOrderStock(order, session);
 
-    order.orderStatus = nextStatus;
-    if (nextStatus === "DELIVERED" && order.paymentMethod === "COD") order.paymentStatus = "PAID";
-    if (nextStatus === "REFUNDED") order.paymentStatus = "REFUNDED";
+    if (nextStatus) {
+      const occurredAt = new Date();
+      order.orderStatus = nextStatus;
+      recordFulfillmentEvent(order, nextStatus, occurredAt);
+      if (nextStatus === "DELIVERED" && order.paymentMethod === "COD") {
+        order.paymentStatus = "PAID";
+      }
+      if (nextStatus === "REFUNDED") order.paymentStatus = "REFUNDED";
+    }
     await order.save({ session });
     await session.commitTransaction();
 
@@ -308,7 +379,7 @@ const getCustomer = async (req, res, next) => {
     const orders = await Order.find({ user: customer._id })
       .sort({ createdAt: -1 })
       .select(
-        "orderNumber items totalAmount orderStatus paymentStatus paymentMethod createdAt cancellationReason cancellationNote cancelledAt cancellationInitiator refundStatus providerRefundId",
+        "orderNumber items totalAmount orderStatus paymentStatus paymentMethod createdAt deliveryEstimate fulfillmentEvents deliveryTracking cancellationReason cancellationNote cancelledAt cancellationInitiator refundStatus providerRefundId",
       );
     res.json({ success: true, customer, orders });
   } catch (error) {
