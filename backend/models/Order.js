@@ -14,6 +14,25 @@ const orderItemSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const fulfillmentEventSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: [
+        "PLACED",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "OUT_FOR_DELIVERY",
+        "DELIVERED",
+      ],
+      required: true,
+    },
+    occurredAt: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true },
@@ -69,6 +88,24 @@ const orderSchema = new mongoose.Schema(
         "REFUNDED",
       ],
       default: "PLACED",
+    },
+    deliveryEstimate: {
+      originalStartDate: { type: String, default: "" },
+      originalEndDate: { type: String, default: "" },
+      minDays: { type: Number, min: 1, max: 60 },
+      maxDays: { type: Number, min: 1, max: 60 },
+      revisedStartDate: { type: String, default: "" },
+      revisedEndDate: { type: String, default: "" },
+      revisedAt: { type: Date },
+      delayReason: { type: String, trim: true, maxlength: 500, default: "" },
+    },
+    fulfillmentEvents: {
+      type: [fulfillmentEventSchema],
+      default: [],
+    },
+    deliveryTracking: {
+      mode: { type: String, enum: ["MANUAL"], default: "MANUAL" },
+      trackingReference: { type: String, trim: true, maxlength: 100, default: "" },
     },
     cancellationReason: {
       type: String,
