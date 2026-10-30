@@ -58,6 +58,14 @@ const registerUser = async (req, res, next) => {
       });
     }
 
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists",
+      });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -100,86 +108,46 @@ const loginUser = async (req, res, next) => {
       });
     }
 
-    const user = await User.findOne({ email }).select("+password");
-    const validPassword = user && (await bcrypt.compare(password, user.password));
+    const [admin, user] = await Promise.all([
+      Admin.findOne({ email }),
+      User.findOne({ email }).select("+password"),
+    ]);
+    const [validAdminPassword, validUserPassword] = await Promise.all([
+      admin ? bcrypt.compare(password, admin.password) : false,
+      user ? bcrypt.compare(password, user.password) : false,
+    ]);
+    const account = validAdminPassword && admin.role === "admin"
+      ? admin
+      : validUserPassword && user.role === "user"
+        ? user
+        : null;
 
-    if (!validPassword) {
+    if (!account) {
       return res.status(401).json({
         success: false,
         message: "Invalid email or password",
       });
     }
 
-    setAuthCookie(res, createToken(user));
+    setAuthCookie(res, createToken(account));
+    const authenticatedAccount = {
+      id: account._id,
+      name: account.name,
+      email: account.email,
+      role: account.role,
+    };
 
     return res.status(200).json({
       success: true,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: authenticatedAccount,
+      ...(account.role === "admin" ? { admin: authenticatedAccount } : {}),
     });
   } catch (error) {
     return next(error);
   }
 };
 
-const loginAdmin = async (req, res, next) => {
-  try {
-    const email = req.body.email?.trim().toLowerCase();
-    const { password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
-    }
-
-    // Find admin
-    const admin = await Admin.findOne({ email });
-
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    if (admin.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access is required",
-      });
-    }
-
-    // Compare password
-    const isPasswordValid = await bcrypt.compare(
-      password,
-      admin.password
-    );
-
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    setAuthCookie(res, createToken(admin));
-
-    res.status(200).json({
-      success: true,
-      message: "Admin login successful",
-      admin: {
-        id: admin._id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+const loginAdmin = loginUser;
 
 const getCurrentUser = (req, res) => {
   res.status(200).json({

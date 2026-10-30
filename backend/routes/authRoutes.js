@@ -2,7 +2,6 @@ const express = require("express");
 const {
   registerUser,
   loginUser,
-  loginAdmin,
   getCurrentUser,
   logoutUser,
 } = require("../controllers/authController");
@@ -42,7 +41,7 @@ router.post(
     email: ["string"],
     password: ["string"],
   }),
-  loginAdmin,
+  loginUser,
 );
 router.get("/me", authenticate, getCurrentUser);
 router.post("/logout", allowBodyFields([]), logoutUser);
