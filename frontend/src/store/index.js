@@ -7,6 +7,7 @@ import searchReducer from "./searchSlice";
 import fetchStatusReducer from "./fetchStatusSlice";
 import userAuthReducer from "./userAuthSlice";
 import adminAuthReducer from "./adminAuthSlice";
+import authSessionReducer from "./authSessionSlice";
 
 const styleKartStore = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ const styleKartStore = configureStore({
     fetchStatus: fetchStatusReducer,
     userAuth: userAuthReducer,
     adminAuth: adminAuthReducer,
+    authSession: authSessionReducer,
   },
 });
 
