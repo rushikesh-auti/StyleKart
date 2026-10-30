@@ -1,16 +1,28 @@
-import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import { setUserSession } from "../store/userAuthSlice";
-import { clearAdminSession } from "../store/adminAuthSlice";
+import { clearUserSession, setUserSession } from "../store/userAuthSlice";
+import { clearAdminSession, setAdminSession } from "../store/adminAuthSlice";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
+import { setSessionStatus } from "../store/authSessionSlice";
 import { adminApiUrl } from "../utils/adminApi";
+import { getSafeCustomerRedirect } from "../utils/authRedirect";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const UserLogin = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const sessionStatus = useSelector((store) => store.authSession?.status);
+  const user = useSelector((store) => store.userAuth?.user);
+  const admin = useSelector((store) => store.adminAuth?.admin);
+  const isAdminAuthenticated = useSelector(
+    (store) => store.adminAuth?.isAuthenticated,
+  );
+  const loginDestination =
+    location.state?.from ||
+    new URLSearchParams(location.search).get("redirect");
   const [isRegistering, setIsRegistering] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -20,6 +32,23 @@ const UserLogin = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (sessionStatus !== "authenticated") return;
+
+    if (isAdminAuthenticated && admin?.role === "admin") {
+      navigate("/admin", { replace: true });
+    } else if (user?.role === "user") {
+      navigate(getSafeCustomerRedirect(loginDestination), { replace: true });
+    }
+  }, [
+    admin?.role,
+    isAdminAuthenticated,
+    loginDestination,
+    navigate,
+    sessionStatus,
+    user?.role,
+  ]);
 
   const handleChange = (event) => {
     setFormData((current) => ({
@@ -61,22 +90,41 @@ const UserLogin = () => {
         throw new Error(data.message || "Unable to authenticate");
       }
 
-      dispatch(clearAdminSession());
-      dispatch(bagActions.resetBag());
-      dispatch(wishlistActions.resetWishlist());
-      dispatch(setUserSession({ user: data.user }));
-      await Promise.all([
-        dispatch(bagActions.loadUserCart()),
-        dispatch(wishlistActions.loadUserWishlist()),
-      ]);
-      const destination = location.state?.from || "/";
-      navigate(destination, { replace: true });
+      if (data.user?.role === "admin") {
+        dispatch(clearUserSession());
+        dispatch(bagActions.resetBag());
+        dispatch(wishlistActions.resetWishlist());
+        dispatch(setAdminSession({ admin: data.user }));
+        dispatch(setSessionStatus("authenticated"));
+        navigate("/admin", { replace: true });
+      } else if (data.user?.role === "user") {
+        dispatch(clearAdminSession());
+        dispatch(bagActions.resetBag());
+        dispatch(wishlistActions.resetWishlist());
+        dispatch(setUserSession({ user: data.user }));
+        dispatch(setSessionStatus("authenticated"));
+        await Promise.all([
+          dispatch(bagActions.loadUserCart()),
+          dispatch(wishlistActions.loadUserWishlist()),
+        ]);
+        navigate(getSafeCustomerRedirect(loginDestination), {
+          replace: true,
+        });
+      } else {
+        throw new Error("The server returned an invalid account role.");
+      }
     } catch (requestError) {
       setError(requestError.message || "Unable to connect to the server");
     } finally {
       setLoading(false);
     }
   };
+
+  if (sessionStatus === "checking") return <LoadingSpinner />;
+
+  if (sessionStatus === "authenticated") {
+    return <LoadingSpinner />;
+  }
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -133,6 +181,7 @@ const UserLogin = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
+                    autoComplete="email"
                     required
                     disabled={loading}
                   />
@@ -152,6 +201,9 @@ const UserLogin = () => {
                     minLength={isRegistering ? 8 : undefined}
                     value={formData.password}
                     onChange={handleChange}
+                    autoComplete={
+                      isRegistering ? "new-password" : "current-password"
+                    }
                     required
                     disabled={loading}
                   />
@@ -172,6 +224,7 @@ const UserLogin = () => {
                       minLength={8}
                       value={formData.confirmPassword}
                       onChange={handleChange}
+                      autoComplete="new-password"
                       required
                       disabled={loading}
                     />
