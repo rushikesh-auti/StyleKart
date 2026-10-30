@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,6 +27,7 @@ import {
 import { searchActions } from "../store/searchSlice";
 import { clearUserSession } from "../store/userAuthSlice";
 import { clearAdminSession } from "../store/adminAuthSlice";
+import { setSessionStatus } from "../store/authSessionSlice";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
@@ -50,6 +52,10 @@ const CountBadge = ({ count }) =>
       {count > 99 ? "99+" : count}
     </span>
   ) : null;
+
+CountBadge.propTypes = {
+  count: PropTypes.number.isRequired,
+};
 
 const iconButton =
   "relative grid h-10 w-10 place-items-center rounded-full text-slate-800 transition-colors hover:bg-slate-100 hover:text-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600";
@@ -114,6 +120,14 @@ const Tile = ({ to, icon: Icon, label, count = 0, onClick }) => (
   </Link>
 );
 
+Tile.propTypes = {
+  to: PropTypes.string.isRequired,
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  count: PropTypes.number,
+  onClick: PropTypes.func,
+};
+
 const Row = ({ to, icon: Icon, label, onClick }) => (
   <Link
     to={to}
@@ -126,16 +140,29 @@ const Row = ({ to, icon: Icon, label, onClick }) => (
   </Link>
 );
 
-const LogoutButton = ({ onClick }) => (
+Row.propTypes = {
+  to: PropTypes.string.isRequired,
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  onClick: PropTypes.func,
+};
+
+const LogoutButton = ({ onClick, disabled }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     role="menuitem"
-    className="flex w-full items-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-3.5 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50"
+    className="flex w-full items-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-3.5 text-left text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-wait disabled:opacity-60"
   >
-    <FaArrowRightFromBracket size={14} /> Log out
+    <FaArrowRightFromBracket size={14} /> {disabled ? "Logging out..." : "Log out"}
   </button>
 );
+
+LogoutButton.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+};
 
 const Header = () => {
   const dispatch = useDispatch();
@@ -150,6 +177,8 @@ const Header = () => {
   );
   const user = useSelector((store) => store.userAuth?.user);
   const [searchText, setSearchText] = useState("");
+  const [logoutError, setLogoutError] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
   const menu = useHoverMenu();
 
   const handleSearch = (event) => {
@@ -166,30 +195,55 @@ const Header = () => {
     );
   };
 
-  const logoutRequest = () =>
-    fetch(adminApiUrl("/auth/logout"), {
+  const logoutRequest = async () => {
+    const response = await fetch(adminApiUrl("/auth/logout"), {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: "{}",
-    }).catch(() => undefined);
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || "Unable to log out. Please try again.");
+    }
+  };
 
   const handleUserLogout = async () => {
-    await logoutRequest();
-    dispatch(clearUserSession());
-    dispatch(bagActions.resetBag());
-    dispatch(wishlistActions.resetWishlist());
-    menu.close();
-    navigate("/", { replace: true });
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      await logoutRequest();
+      dispatch(clearUserSession());
+      dispatch(bagActions.resetBag());
+      dispatch(wishlistActions.resetWishlist());
+      dispatch(setSessionStatus("unauthenticated"));
+      menu.close();
+      navigate("/", { replace: true });
+    } catch (requestError) {
+      setLogoutError(requestError.message);
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const handleAdminLogout = async () => {
-    await logoutRequest();
-    dispatch(clearAdminSession());
-    dispatch(bagActions.resetBag());
-    dispatch(wishlistActions.resetWishlist());
-    menu.close();
-    navigate("/admin/login", { replace: true });
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      await logoutRequest();
+      dispatch(clearAdminSession());
+      dispatch(bagActions.resetBag());
+      dispatch(wishlistActions.resetWishlist());
+      dispatch(setSessionStatus("unauthenticated"));
+      menu.close();
+      navigate("/login", { replace: true });
+    } catch (requestError) {
+      setLogoutError(requestError.message);
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   // Mouse: hover already opened it, so a click keeps it open. Touch: click toggles.
@@ -215,6 +269,11 @@ const Header = () => {
     if (isAdminAuthenticated) {
       return (
         <>
+          {logoutError && (
+            <p className="px-5 pt-4 text-sm font-semibold text-rose-700" role="alert">
+              {logoutError}
+            </p>
+          )}
           <div className="flex items-center gap-3 px-5 pb-4 pt-5">
             <span className="grid h-11 w-11 place-items-center rounded-full bg-slate-900 text-white">
               <BsShieldLockFill size={18} />
@@ -232,7 +291,7 @@ const Header = () => {
               onClick={menu.close}
             />
           </div>
-          <LogoutButton onClick={handleAdminLogout} />
+          <LogoutButton onClick={handleAdminLogout} disabled={loggingOut} />
         </>
       );
     }
@@ -240,6 +299,11 @@ const Header = () => {
     if (isUserAuthenticated) {
       return (
         <>
+          {logoutError && (
+            <p className="px-5 pt-4 text-sm font-semibold text-rose-700" role="alert">
+              {logoutError}
+            </p>
+          )}
           <div className="flex items-center gap-3 px-5 pb-4 pt-5">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-600 text-lg font-bold text-white">
               {initial}
@@ -304,7 +368,7 @@ const Header = () => {
               onClick={menu.close}
             />
           </div>
-          <LogoutButton onClick={handleUserLogout} />
+          <LogoutButton onClick={handleUserLogout} disabled={loggingOut} />
         </>
       );
     }
@@ -347,14 +411,6 @@ const Header = () => {
             onClick={menu.close}
           />
         </div>
-        <Link
-          to="/admin/login"
-          onClick={menu.close}
-          role="menuitem"
-          className="flex items-center gap-3 border-t border-slate-100 bg-slate-50 px-6 py-3.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-        >
-          <BsShieldLockFill size={14} /> Admin login
-        </Link>
       </>
     );
   };
