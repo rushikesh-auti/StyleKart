@@ -8,6 +8,9 @@ test("admin order status route remains behind admin route protection", () => {
   const protectionLayer = adminRoutes.stack.find(
     (layer) => layer.name === "protect",
   );
+  const dashboardRoute = adminRoutes.stack.find(
+    (layer) => layer.route?.path === "/dashboard" && layer.route.methods.get,
+  );
   const statusRoute = adminRoutes.stack.find(
     (layer) =>
       layer.route?.path === "/orders/:id/status" &&
@@ -15,6 +18,7 @@ test("admin order status route remains behind admin route protection", () => {
   );
 
   assert.ok(protectionLayer);
+  assert.ok(dashboardRoute);
   assert.ok(statusRoute);
 });
 

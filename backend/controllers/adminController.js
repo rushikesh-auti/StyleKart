@@ -40,6 +40,44 @@ const queryLowStockProducts = (threshold, limit) => {
   return Product.aggregate(pipeline);
 };
 
+const queryDashboardInventory = (threshold, limit) =>
+  Product.aggregate([
+    { $set: { stock: availableStockExpression } },
+    {
+      $facet: {
+        summary: [
+          {
+            $group: {
+              _id: null,
+              lowStockCount: {
+                $sum: { $cond: [{ $lte: ["$stock", threshold] }, 1, 0] },
+              },
+              outOfStockCount: {
+                $sum: { $cond: [{ $eq: ["$stock", 0] }, 1, 0] },
+              },
+            },
+          },
+        ],
+        products: [
+          { $match: { $expr: { $lte: ["$stock", threshold] } } },
+          { $sort: { stock: 1, createdAt: -1 } },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 0,
+              id: 1,
+              company: 1,
+              item_name: 1,
+              category: 1,
+              current_price: 1,
+              stock: 1,
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
 const createError = (message, statusCode = 400) => {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -54,34 +92,188 @@ const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const getDashboard = async (req, res, next) => {
   try {
     const lowStockThreshold = 5;
-    const [revenueResult, totalOrders, totalCustomers, totalProducts, pendingOrders, lowStockProducts, recentOrders] = await Promise.all([
+    const trendStart = new Date();
+    trendStart.setUTCHours(0, 0, 0, 0);
+    trendStart.setUTCDate(trendStart.getUTCDate() - 29);
+    const paidSalesFilter = {
+      paymentStatus: "PAID",
+      orderStatus: { $nin: ["CANCELLED", "REFUNDED"] },
+    };
+
+    const [salesResult, totalOrders, totalCustomers, totalProducts, pendingOrders, inventoryResult, recentOrders] = await Promise.all([
       Order.aggregate([
-        { $match: { orderStatus: { $nin: ["CANCELLED", "REFUNDED"] } } },
-        { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+        {
+          $match: {
+            $or: [
+              paidSalesFilter,
+              { createdAt: { $gte: trendStart } },
+            ],
+          },
+        },
+        {
+          $facet: {
+            revenue: [
+              { $match: paidSalesFilter },
+              {
+                $group: {
+                  _id: null,
+                  totalRevenue: { $sum: "$totalAmount" },
+                },
+              },
+              { $project: { _id: 0, totalRevenue: 1 } },
+            ],
+            trends: [
+              {
+                $match: {
+                  ...paidSalesFilter,
+                  createdAt: { $gte: trendStart },
+                },
+              },
+              {
+                $group: {
+                  _id: {
+                    $dateToString: {
+                      format: "%Y-%m-%d",
+                      date: "$createdAt",
+                    },
+                  },
+                  revenue: { $sum: "$totalAmount" },
+                  orders: { $sum: 1 },
+                },
+              },
+              { $sort: { _id: 1 } },
+              {
+                $project: {
+                  _id: 0,
+                  date: "$_id",
+                  revenue: 1,
+                  orders: 1,
+                },
+              },
+            ],
+            orderTrend: [
+              { $match: { createdAt: { $gte: trendStart } } },
+              {
+                $group: {
+                  _id: {
+                    $dateToString: {
+                      format: "%Y-%m-%d",
+                      date: "$createdAt",
+                    },
+                  },
+                  orders: { $sum: 1 },
+                },
+              },
+              { $sort: { _id: 1 } },
+              {
+                $project: {
+                  _id: 0,
+                  date: "$_id",
+                  orders: 1,
+                },
+              },
+            ],
+            bestSellingProducts: [
+              { $match: paidSalesFilter },
+              { $unwind: "$items" },
+              {
+                $group: {
+                  _id: "$items.productId",
+                  name: { $first: "$items.itemName" },
+                  quantitySold: { $sum: "$items.quantity" },
+                },
+              },
+              { $sort: { quantitySold: -1, _id: 1 } },
+              { $limit: 5 },
+              {
+                $project: {
+                  _id: 0,
+                  productId: "$_id",
+                  name: 1,
+                  quantitySold: 1,
+                },
+              },
+            ],
+            categoryPerformance: [
+              { $match: paidSalesFilter },
+              { $unwind: "$items" },
+              {
+                $lookup: {
+                  from: Product.collection.name,
+                  localField: "items.productId",
+                  foreignField: "id",
+                  as: "product",
+                },
+              },
+              { $unwind: "$product" },
+              {
+                $group: {
+                  _id: "$product.category",
+                  quantitySold: { $sum: "$items.quantity" },
+                },
+              },
+              { $sort: { quantitySold: -1, _id: 1 } },
+              { $limit: 6 },
+              {
+                $project: {
+                  _id: 0,
+                  category: "$_id",
+                  quantitySold: 1,
+                },
+              },
+            ],
+          },
+        },
       ]),
       Order.countDocuments(),
       User.countDocuments({ role: "user" }),
       Product.countDocuments(),
       Order.countDocuments({ orderStatus: { $in: ["PLACED", "CONFIRMED", "PROCESSING"] } }),
-      queryLowStockProducts(lowStockThreshold, 8),
+      queryDashboardInventory(lowStockThreshold, 8),
       Order.find()
         .populate("user", "name email")
         .sort({ createdAt: -1 })
         .limit(6)
         .select("orderNumber user totalAmount orderStatus paymentStatus createdAt"),
     ]);
+    const sales = salesResult[0] || {};
+    const inventory = inventoryResult[0] || {};
+    const inventorySummary = inventory.summary?.[0] || {};
+    const revenueByDate = new Map(
+      (sales.trends || []).map((trend) => [trend.date, trend]),
+    );
+    const ordersByDate = new Map(
+      (sales.orderTrend || []).map((trend) => [trend.date, trend.orders]),
+    );
+    const dailyTrends = Array.from({ length: 30 }, (_, index) => {
+      const date = new Date(trendStart);
+      date.setUTCDate(date.getUTCDate() + index);
+      const dateKey = date.toISOString().slice(0, 10);
+      const revenueTrend = revenueByDate.get(dateKey);
+
+      return {
+        date: dateKey,
+        revenue: revenueTrend?.revenue || 0,
+        orders: ordersByDate.get(dateKey) || 0,
+      };
+    });
 
     res.json({
       success: true,
       metrics: {
-        totalRevenue: revenueResult[0]?.totalRevenue || 0,
+        totalRevenue: sales.revenue?.[0]?.totalRevenue || 0,
         totalOrders,
         totalCustomers,
         totalProducts,
         pendingOrders,
-        lowStockCount: lowStockProducts.length,
+        lowStockCount: inventorySummary.lowStockCount || 0,
+        outOfStockCount: inventorySummary.outOfStockCount || 0,
       },
-      lowStockProducts,
+      revenueTrend: dailyTrends.map(({ date, revenue }) => ({ date, revenue })),
+      orderTrend: dailyTrends.map(({ date, orders }) => ({ date, orders })),
+      bestSellingProducts: sales.bestSellingProducts || [],
+      categoryPerformance: sales.categoryPerformance || [],
+      lowStockProducts: inventory.products || [],
       recentOrders,
     });
   } catch (error) {
