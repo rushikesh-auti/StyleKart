@@ -1,3 +1,5 @@
+import { getCurrentRoute, getLoginUrl } from "./authRedirect";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export const clearUserSession = () => {
@@ -30,7 +32,7 @@ export const userFetch = async (path, options = {}) => {
 
   if (response.status === 401) {
     clearUserSession();
-    window.location.assign("/login");
+    window.location.assign(getLoginUrl(getCurrentRoute()));
   }
 
   if (!response.ok) {
