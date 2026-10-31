@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 
-import { clearAdminSession } from "../store/adminAuthSlice";
 import { adminFetch } from "../utils/adminApi";
 import getProductImageUrl from "../utils/productImageUrl";
 
@@ -11,8 +9,6 @@ const AdminProducts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -62,11 +58,6 @@ const AdminProducts = () => {
     }
   };
 
-  const handleLogout = () => {
-    dispatch(clearAdminSession());
-    navigate("/admin/login", { replace: true });
-  };
-
   if (loading) {
     return (
       <main className="mx-auto w-full max-w-7xl px-4 py-12 text-center sm:px-6 lg:px-8">
@@ -100,13 +91,6 @@ const AdminProducts = () => {
           >
             Add Product
           </Link>
-          <button
-            type="button"
-            className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-600 hover:bg-rose-50"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
         </div>
       </div>
 
