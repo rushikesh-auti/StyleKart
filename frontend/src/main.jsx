@@ -40,6 +40,7 @@ import AdminOrders from "./pages/AdminOrders.jsx";
 import AdminCustomers from "./pages/AdminCustomers.jsx";
 import AdminInventory from "./pages/AdminInventory.jsx";
 import AdminSupportInbox from "./pages/AdminSupportInbox.jsx";
+import AdminLayout from "./components/AdminLayout.jsx";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./pages/AdminProtectedRoute.jsx";
@@ -165,40 +166,45 @@ const router = createBrowserRouter([
         element: <AdminProtectedRoute />,
         children: [
           {
-            path: "/admin",
-            element: <AdminDashboard />,
-          },
-          {
-            path: "/admin/products",
-            element: <AdminProducts />,
-          },
-          {
-            path: "/admin/products/add",
-            element: <AddProduct />,
-          },
-          {
-            path: "/admin/products/edit/:id",
-            element: <EditProduct />,
-          },
-          {
-            path: "/admin/coupons",
-            element: <AdminCoupons />,
-          },
-          {
-            path: "/admin/orders",
-            element: <AdminOrders />,
-          },
-          {
-            path: "/admin/customers",
-            element: <AdminCustomers />,
-          },
-          {
-            path: "/admin/inventory",
-            element: <AdminInventory />,
-          },
-          {
-            path: "/admin/support",
-            element: <AdminSupportInbox />,
+            element: <AdminLayout />,
+            children: [
+              {
+                path: "/admin",
+                element: <AdminDashboard />,
+              },
+              {
+                path: "/admin/products",
+                element: <AdminProducts />,
+              },
+              {
+                path: "/admin/products/add",
+                element: <AddProduct />,
+              },
+              {
+                path: "/admin/products/edit/:id",
+                element: <EditProduct />,
+              },
+              {
+                path: "/admin/coupons",
+                element: <AdminCoupons />,
+              },
+              {
+                path: "/admin/orders",
+                element: <AdminOrders />,
+              },
+              {
+                path: "/admin/customers",
+                element: <AdminCustomers />,
+              },
+              {
+                path: "/admin/inventory",
+                element: <AdminInventory />,
+              },
+              {
+                path: "/admin/support",
+                element: <AdminSupportInbox />,
+              },
+            ],
           },
         ],
       },
