@@ -9,6 +9,7 @@ import { setSessionStatus } from "../store/authSessionSlice";
 import { adminApiUrl } from "../utils/adminApi";
 import { getSafeCustomerRedirect } from "../utils/authRedirect";
 import LoadingSpinner from "../components/LoadingSpinner";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 const UserLogin = () => {
   const dispatch = useDispatch();
@@ -57,6 +58,47 @@ const UserLogin = () => {
     }));
   };
 
+  const completeCustomerLogin = async (customer) => {
+    dispatch(clearAdminSession());
+    dispatch(bagActions.resetBag());
+    dispatch(wishlistActions.resetWishlist());
+    dispatch(setUserSession({ user: customer }));
+    dispatch(setSessionStatus("authenticated"));
+    await Promise.all([
+      dispatch(bagActions.loadUserCart()),
+      dispatch(wishlistActions.loadUserWishlist()),
+    ]);
+    navigate(getSafeCustomerRedirect(loginDestination), { replace: true });
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(adminApiUrl("/auth/google"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to sign in with Google.");
+      }
+      if (data.user?.role !== "user") {
+        throw new Error("The server returned an invalid customer account.");
+      }
+
+      await completeCustomerLogin(data.user);
+    } catch (requestError) {
+      setError(requestError.message || "Unable to connect to the server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -98,18 +140,7 @@ const UserLogin = () => {
         dispatch(setSessionStatus("authenticated"));
         navigate("/admin", { replace: true });
       } else if (data.user?.role === "user") {
-        dispatch(clearAdminSession());
-        dispatch(bagActions.resetBag());
-        dispatch(wishlistActions.resetWishlist());
-        dispatch(setUserSession({ user: data.user }));
-        dispatch(setSessionStatus("authenticated"));
-        await Promise.all([
-          dispatch(bagActions.loadUserCart()),
-          dispatch(wishlistActions.loadUserWishlist()),
-        ]);
-        navigate(getSafeCustomerRedirect(loginDestination), {
-          replace: true,
-        });
+        await completeCustomerLogin(data.user);
       } else {
         throw new Error("The server returned an invalid account role.");
       }
@@ -242,6 +273,20 @@ const UserLogin = () => {
                       : "Login"}
                 </button>
               </form>
+
+              {!isRegistering && (
+                <>
+                  <div className="mt-5 flex items-center gap-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    <span>or continue with</span>
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
+                  <GoogleSignInButton
+                    disabled={loading}
+                    onCredential={handleGoogleCredential}
+                  />
+                </>
+              )}
 
               <button
                 className="mt-3 w-full rounded-xl px-4 py-2.5 text-sm font-black text-brand-700 hover:bg-brand-50"
