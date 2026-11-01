@@ -29,6 +29,10 @@ const productSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    occasions: {
+      type: [{ type: String, trim: true, lowercase: true }],
+      default: [],
+    },
     brand: {
       type: String,
       default: "",

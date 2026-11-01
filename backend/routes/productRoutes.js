@@ -27,6 +27,7 @@ router.get(
     "category",
     "brand",
     "subcategory",
+    "occasion",
     "minPrice",
     "maxPrice",
     "minDiscount",

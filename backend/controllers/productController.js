@@ -24,6 +24,7 @@ const getProducts = async (req, res, next) => {
       category,
       brand,
       subcategory,
+      occasion,
       minPrice,
       maxPrice,
       minDiscount,
@@ -48,6 +49,12 @@ const getProducts = async (req, res, next) => {
           escapeRegex(subcategory.trim()),
           "i",
         ),
+      });
+    }
+
+    if (occasion?.trim()) {
+      conditions.push({
+        occasions: new RegExp(escapeRegex(occasion.trim()), "i"),
       });
     }
 
