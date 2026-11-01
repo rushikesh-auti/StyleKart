@@ -4,7 +4,19 @@ import PropTypes from "prop-types";
 import { adminFetch } from "../utils/adminApi";
 import { createVariantCombinations } from "../utils/productInventory";
 
-const categories = ["men", "women", "kids", "beauty"];
+const categories = [
+  { value: "men", label: "Men" },
+  { value: "women", label: "Women" },
+  { value: "kids", label: "Kids" },
+  { value: "beauty", label: "Beauty" },
+  { value: "unisex", label: "GenZ" },
+];
+const parseCommaSeparatedValues = (value) =>
+  value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
 const MAX_IMAGE_SIZE_MB = (() => {
   const configuredValue = Number(import.meta.env.VITE_PRODUCT_IMAGE_MAX_SIZE_MB);
   return Number.isFinite(configuredValue) && configuredValue > 0
@@ -24,6 +36,38 @@ const ProductForm = ({
   const [imagePreview, setImagePreview] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [arrayInputValues, setArrayInputValues] = useState(() => ({
+    occasions: (formData.occasions || []).join(", "),
+    sizes: (formData.sizes || []).join(", "),
+    colors: (formData.colors || []).join(", "),
+  }));
+  const occasions = formData.occasions;
+  const sizesForInput = formData.sizes;
+  const colorsForInput = formData.colors;
+
+  useEffect(() => {
+    setArrayInputValues((previous) => {
+      let next = previous;
+
+      for (const field of ["occasions", "sizes", "colors"]) {
+        const values =
+          field === "occasions"
+            ? occasions
+            : field === "sizes"
+              ? sizesForInput
+              : colorsForInput;
+        if (
+          JSON.stringify(parseCommaSeparatedValues(previous[field])) !==
+          JSON.stringify(values)
+        ) {
+          if (next === previous) next = { ...previous };
+          next[field] = values.join(", ");
+        }
+      }
+
+      return next;
+    });
+  }, [occasions, sizesForInput, colorsForInput]);
 
   useEffect(
     () => () => {
@@ -36,10 +80,9 @@ const ProductForm = ({
 
   const handleArrayChange = (event) => {
     const { name, value } = event.target;
-    const nextOptions = value
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const nextOptions = parseCommaSeparatedValues(value);
+
+    setArrayInputValues((previous) => ({ ...previous, [name]: value }));
 
     onChange({
       target: {
@@ -47,6 +90,8 @@ const ProductForm = ({
         value: nextOptions,
       },
     });
+    if (name !== "sizes" && name !== "colors") return;
+
     const sizes = name === "sizes" ? nextOptions : formData.sizes;
     const colors = name === "colors" ? nextOptions : formData.colors;
     const currentVariants = formData.inventoryVariants || [];
@@ -312,6 +357,25 @@ const ProductForm = ({
 
         <div className="md:col-span-6">
           <label
+            htmlFor="occasions"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
+            Occasions
+          </label>
+
+          <input
+            id="occasions"
+            type="text"
+            name="occasions"
+            value={arrayInputValues.occasions}
+            onChange={handleArrayChange}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+            placeholder="Add occasion tags separated by commas"
+          />
+        </div>
+
+        <div className="md:col-span-6">
+          <label
             htmlFor="category"
             className="mb-2 block text-sm font-bold text-slate-700"
           >
@@ -329,8 +393,8 @@ const ProductForm = ({
             <option value="">Select category</option>
 
             {categories.map((category) => (
-              <option key={category} value={category}>
-                {category.charAt(0).toUpperCase() + category.slice(1)}
+              <option key={category.value} value={category.value}>
+                {category.label}
               </option>
             ))}
           </select>
@@ -544,7 +608,7 @@ const ProductForm = ({
             id="sizes"
             type="text"
             name="sizes"
-            value={formData.sizes.join(", ")}
+            value={arrayInputValues.sizes}
             onChange={handleArrayChange}
             className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="S, M, L, XL"
@@ -567,7 +631,7 @@ const ProductForm = ({
             id="colors"
             type="text"
             name="colors"
-            value={formData.colors.join(", ")}
+            value={arrayInputValues.colors}
             onChange={handleArrayChange}
             className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             placeholder="Black, White, Blue"
@@ -711,6 +775,7 @@ ProductForm.propTypes = {
     brand: PropTypes.string.isRequired,
     category: PropTypes.string.isRequired,
     subcategory: PropTypes.string.isRequired,
+    occasions: PropTypes.arrayOf(PropTypes.string).isRequired,
     description: PropTypes.string.isRequired,
     image: PropTypes.string.isRequired,
     imagePublicId: PropTypes.string,

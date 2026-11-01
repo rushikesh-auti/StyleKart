@@ -14,6 +14,7 @@ const validateProduct = (req, res, next) => {
     "id",
     "category",
     "subcategory",
+    "occasions",
     "brand",
     "company",
     "item_name",
@@ -171,7 +172,7 @@ const validateProduct = (req, res, next) => {
     "description",
     "delivery_date",
   ];
-  const stringArrayFields = ["images", "sizes", "colors"];
+  const stringArrayFields = ["images", "sizes", "colors", "occasions"];
 
   for (const field of optionalTextFields) {
     if (req.body[field] !== undefined && typeof req.body[field] !== "string") {
