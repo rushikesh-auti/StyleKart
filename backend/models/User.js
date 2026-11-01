@@ -21,8 +21,15 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required() {
+        return !this.googleId;
+      },
       select: false,
+    },
+    googleId: {
+      type: String,
+      trim: true,
+      immutable: true,
     },
     role: {
       type: String,
@@ -36,5 +43,6 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("User", userSchema);

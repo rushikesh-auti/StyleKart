@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
+const googleIdentityService = require("../services/googleIdentityService");
 
 const authCookieOptions = () => ({
   httpOnly: true,
@@ -113,8 +114,8 @@ const loginUser = async (req, res, next) => {
       User.findOne({ email }).select("+password"),
     ]);
     const [validAdminPassword, validUserPassword] = await Promise.all([
-      admin ? bcrypt.compare(password, admin.password) : false,
-      user ? bcrypt.compare(password, user.password) : false,
+      admin?.password ? bcrypt.compare(password, admin.password) : false,
+      user?.password ? bcrypt.compare(password, user.password) : false,
     ]);
     const account = validAdminPassword && admin.role === "admin"
       ? admin
@@ -147,6 +148,78 @@ const loginUser = async (req, res, next) => {
   }
 };
 
+const googleLogin = async (req, res, next) => {
+  try {
+    const credential = req.body.credential?.trim();
+    if (!credential || credential.length > 10000) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid Google credential is required.",
+      });
+    }
+
+    const identity = await googleIdentityService.verifyGoogleCredential(credential);
+    const existingAdmin = await Admin.findOne({ email: identity.email });
+    if (existingAdmin) {
+      return res.status(409).json({
+        success: false,
+        message: "This email cannot be used for customer Google sign-in.",
+      });
+    }
+
+    let user = await User.findOne({ googleId: identity.googleId });
+    if (user && user.role !== "user") {
+      return res.status(403).json({
+        success: false,
+        message: "This account is not eligible for customer sign-in.",
+      });
+    }
+
+    if (!user) {
+      const emailAccount = await User.findOne({ email: identity.email });
+      if (emailAccount) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "An account with this email already exists. Sign in with your password instead.",
+        });
+      }
+
+      try {
+        user = await User.create({
+          name: identity.name,
+          email: identity.email,
+          googleId: identity.googleId,
+          role: "user",
+        });
+      } catch (error) {
+        if (error.code !== 11000) throw error;
+
+        user = await User.findOne({ googleId: identity.googleId });
+        if (!user || user.role !== "user") {
+          return res.status(409).json({
+            success: false,
+            message: "An account with this email already exists.",
+          });
+        }
+      }
+    }
+
+    setAuthCookie(res, createToken(user));
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: "user",
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 const loginAdmin = loginUser;
 
 const getCurrentUser = (req, res) => {
@@ -164,6 +237,7 @@ const logoutUser = (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  googleLogin,
   loginAdmin,
   getCurrentUser,
   logoutUser,

@@ -2,6 +2,7 @@ const express = require("express");
 const {
   registerUser,
   loginUser,
+  googleLogin,
   getCurrentUser,
   logoutUser,
 } = require("../controllers/authController");
@@ -42,6 +43,13 @@ router.post(
     password: ["string"],
   }),
   loginUser,
+);
+router.post(
+  "/google",
+  authLimiter,
+  requireJsonObject,
+  allowBodyFields(["credential"], { credential: ["string"] }),
+  googleLogin,
 );
 router.get("/me", authenticate, getCurrentUser);
 router.post("/logout", allowBodyFields([]), logoutUser);
