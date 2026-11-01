@@ -32,15 +32,8 @@ import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import { adminApiUrl } from "../utils/adminApi";
 
-/*
-  Matches the StyleKart storefront:
-  - white header, slate-100 search pill, slate-50 page
-  - magenta (brand) for accents: icons, badges, active states
-  - black (slate-900) for primary buttons, like "Shop Now" / "Select Options"
-*/
-
 const navClass = ({ isActive }) =>
-  `border-b-2 px-0.5 py-1 text-sm font-semibold transition-colors ${
+  `border-b-2 px-0.5 py-1 text-[13px] font-medium transition-colors ${
     isActive
       ? "border-brand-600 text-brand-700"
       : "border-transparent text-slate-800 hover:text-brand-600"
@@ -84,7 +77,14 @@ const useHoverMenu = () => {
     const onDown = (e) => {
       if (ref.current && !ref.current.contains(e.target)) close();
     };
-    const onKey = (e) => e.key === "Escape" && close();
+    const onKey = (event) => {
+      if (event.key === "Escape") {
+        close();
+        ref.current
+          ?.querySelector('button[aria-haspopup="menu"]')
+          ?.focus();
+      }
+    };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -255,11 +255,34 @@ const Header = () => {
     else menu.toggle();
   };
 
+  const handleMenuKeyDown = (event) => {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+
+    const menuItems = Array.from(
+      menu.ref.current?.querySelectorAll('[role="menuitem"]') || [],
+    );
+    if (!menuItems.length) return;
+
+    event.preventDefault();
+    const currentIndex = menuItems.indexOf(document.activeElement);
+    const nextIndex =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? menuItems.length - 1
+          : event.key === "ArrowDown"
+            ? (currentIndex + 1) % menuItems.length
+            : (currentIndex - 1 + menuItems.length) % menuItems.length;
+    menuItems[nextIndex].focus();
+  };
+
   const categoryLinks = [
     { to: "/men", label: "Men" },
     { to: "/women", label: "Women" },
     { to: "/kids", label: "Kids" },
     { to: "/beauty", label: "Beauty" },
+    { to: "/genz", label: "GenZ" },
+    { to: "/wardrobe", label: "Wardrobe", badge: "NEW" },
   ];
 
   const initial = (user?.name || "U").trim().charAt(0).toUpperCase();
@@ -421,6 +444,7 @@ const Header = () => {
       <input
         type="text"
         className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-500"
+        aria-label="Search products"
         placeholder="Search products, brands and more"
         value={searchText}
         onChange={handleSearch}
@@ -447,19 +471,30 @@ const Header = () => {
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-3 sm:px-6 md:h-[68px] lg:gap-8 lg:px-8">
           <Link to="/" className="shrink-0" aria-label="StyleKart home">
             <img
-              className="h-8 w-auto sm:h-9"
+              className="h-10 w-[166px] object-cover object-center sm:h-11"
               src="/images/stylekart.png"
               alt="StyleKart"
             />
           </Link>
 
           <nav
-            className="hidden items-center gap-6 md:flex"
+          className="hidden items-center gap-4 lg:gap-6 md:flex"
             aria-label="Primary navigation"
           >
-            {categoryLinks.map(({ to, label }) => (
-              <NavLink key={to} to={to} className={navClass}>
-                {label}
+            {categoryLinks.map(({ to, label, badge }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `${navClass({ isActive })} inline-flex items-center gap-1.5`
+                }
+              >
+                <span>{label}</span>
+                {badge && (
+                  <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[9px] font-bold leading-none tracking-wide text-white">
+                    {badge}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -477,7 +512,15 @@ const Header = () => {
               <button
                 type="button"
                 onClick={handleTriggerClick}
-                onKeyDown={(e) => e.key === "ArrowDown" && menu.open()}
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowDown") return;
+                  menu.open();
+                  window.requestAnimationFrame(() => {
+                    menu.ref.current
+                      ?.querySelector('[role="menuitem"]')
+                      ?.focus();
+                  });
+                }}
                 aria-haspopup="menu"
                 aria-expanded={menu.isOpen}
                 aria-label="Account menu"
@@ -524,6 +567,7 @@ const Header = () => {
               >
                 <div
                   role="menu"
+                  onKeyDown={handleMenuKeyDown}
                   className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-soft"
                 >
                   {renderPanel()}
@@ -576,34 +620,40 @@ const Header = () => {
           <FaHouse className="text-lg" />
           <span>Home</span>
         </NavLink>
-        <Link
+        <NavLink
           to="/categories"
-          className="flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold text-slate-500"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold ${isActive ? "bg-brand-50 text-brand-700" : "text-slate-500"}`
+          }
         >
           <FaBars className="text-lg" />
           <span>Categories</span>
-        </Link>
-        <Link
+        </NavLink>
+        <NavLink
           to="/wishlist"
-          className="flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold text-slate-500"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold ${isActive ? "bg-brand-50 text-brand-700" : "text-slate-500"}`
+          }
         >
           <span className="relative">
             <FaHeart className="text-lg" />
             <CountBadge count={wishlist.length} />
           </span>
           <span>Wishlist</span>
-        </Link>
-        <Link
+        </NavLink>
+        <NavLink
           to="/bag"
-          className="flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold text-slate-500"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold ${isActive ? "bg-brand-50 text-brand-700" : "text-slate-500"}`
+          }
         >
           <span className="relative">
             <FaBagShopping className="text-lg" />
             <CountBadge count={bag.length} />
           </span>
           <span>Bag</span>
-        </Link>
-        <Link
+        </NavLink>
+        <NavLink
           to={
             isAdminAuthenticated
               ? "/admin"
@@ -611,7 +661,9 @@ const Header = () => {
                 ? "/profile"
                 : "/login"
           }
-          className="flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold text-slate-500"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-1 rounded-xl py-2 text-[11px] font-semibold ${isActive ? "bg-brand-50 text-brand-700" : "text-slate-500"}`
+          }
         >
           {isAdminAuthenticated ? (
             <BsShieldLockFill className="text-lg" />
@@ -619,7 +671,7 @@ const Header = () => {
             <BsFillPersonFill className="text-lg" />
           )}
           <span>{isAdminAuthenticated ? "Admin" : "Account"}</span>
-        </Link>
+        </NavLink>
       </nav>
     </>
   );
