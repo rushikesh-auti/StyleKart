@@ -49,7 +49,7 @@ const HomeItem = ({ item }) => {
   };
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft">
+    <article className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-soft motion-reduce:transition-none">
       <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
         <Link to={`/product/${item.id}`} className="block h-full">
           <img
@@ -57,13 +57,19 @@ const HomeItem = ({ item }) => {
             src={imagePath}
             alt={item.item_name}
             loading="lazy"
+            decoding="async"
           />
         </Link>
         <button
           type="button"
           className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white text-brand-600 shadow-md hover:bg-brand-50"
           onClick={toggleWishlist}
-          aria-label="Toggle wishlist"
+          aria-label={
+            isInWishlist
+              ? `Remove ${item.item_name} from wishlist`
+              : `Add ${item.item_name} to wishlist`
+          }
+          aria-pressed={isInWishlist}
         >
           {isInWishlist ? <FaHeart /> : <FaRegHeart />}
         </button>
@@ -75,10 +81,10 @@ const HomeItem = ({ item }) => {
       </div>
       <div className="p-3 sm:p-4">
         <Link to={`/product/${item.id}`} className="text-inherit no-underline">
-          <p className="truncate text-[11px] font-black uppercase tracking-wider text-slate-500">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
             {item.brand || item.company}
           </p>
-          <h3 className="mt-1.5 line-clamp-2 min-h-[2.6rem] text-sm font-bold leading-5 text-slate-900 sm:text-[15px]">
+          <h3 className="mt-1.5 line-clamp-2 min-h-[2.6rem] text-sm font-semibold leading-5 text-slate-900 sm:text-[15px]">
             {item.item_name}
           </h3>
         </Link>
@@ -110,7 +116,7 @@ const HomeItem = ({ item }) => {
         </p>
         <button
           type="button"
-          className="w-full rounded-xl bg-slate-950 px-3 py-2.5 text-xs font-black text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+          className="w-full rounded-full bg-slate-950 px-3 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 motion-reduce:transition-none"
           disabled={isOutOfStock || isInBag}
           onClick={addToCart}
         >

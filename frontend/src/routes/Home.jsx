@@ -2,6 +2,22 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 import HomeItem from "../components/HomeItem";
+import DiscoverySection from "../components/DiscoverySection";
+
+const getUniqueProductTags = (items, selectTags) => {
+  const tags = new Map();
+
+  items.forEach((item) => {
+    selectTags(item).forEach((tag) => {
+      const value = String(tag || "").trim();
+      if (value) tags.set(value.toLowerCase(), value);
+    });
+  });
+
+  return [...tags.values()].sort((first, second) =>
+    first.localeCompare(second),
+  );
+};
 
 const categories = [
   {
@@ -28,13 +44,19 @@ const categories = [
     image: "/images/categories/beauty.jpg",
     description: "Beauty picks made for you",
   },
+  {
+    name: "GenZ",
+    path: "/genz",
+    image: "/images/categories/genz.jpg",
+    description: "Fresh picks for every way you express yourself",
+  },
 ];
 
 const ProductSection = ({ title, description, products }) => (
   <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-    <div className="mb-7 flex items-end justify-between gap-5 [&_h2]:mt-2 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:tracking-[-0.025em] [&_h2]:text-slate-950 sm:[&_h2]:text-3xl [&_div>p:last-child]:mt-2 [&_div>p:last-child]:text-sm [&_div>p:last-child]:text-slate-500">
+    <div className="mb-7 flex items-end justify-between gap-5 [&_h2]:mt-2 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-medium [&_h2]:tracking-[-0.025em] [&_h2]:text-slate-950 sm:[&_h2]:text-3xl [&_div>p:last-child]:mt-2 [&_div>p:last-child]:text-sm [&_div>p:last-child]:text-slate-500">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+        <p className="sk-eyebrow">
           StyleKart selection
         </p>
         <h2>{title}</h2>
@@ -113,12 +135,18 @@ const Home = () => {
     .slice(0, 4);
 
   const recentlyAddedProducts = visibleItems.slice(0, 4);
-
+  const occasionOptions = getUniqueProductTags(
+    items,
+    (item) => item.occasions || [],
+  );
+  const styleOptions = getUniqueProductTags(items, (item) => [
+    item.subcategory,
+  ]);
   if (normalizedSearch) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 [&_h1]:mt-2 [&_h1]:text-3xl [&_h1]:font-black [&_h1]:text-slate-950 sm:[&_h1]:text-4xl">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+        <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 [&_h1]:mt-2 [&_h1]:font-display [&_h1]:text-3xl [&_h1]:font-medium [&_h1]:text-slate-950 sm:[&_h1]:text-4xl">
+          <p className="sk-eyebrow">
             Search results
           </p>
           <h1>
@@ -145,38 +173,40 @@ const Home = () => {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <section className="mx-auto mt-6 grid w-[calc(100%_-_2rem)] max-w-7xl overflow-hidden rounded-3xl bg-gradient-to-br from-brand-50 via-white to-rose-50 lg:grid-cols-2 sm:w-[calc(100%_-_3rem)]">
-        <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14 [&>h1]:mt-3 [&>h1]:max-w-xl [&>h1]:text-4xl [&>h1]:font-black [&>h1]:tracking-[-0.045em] [&>h1]:text-slate-950 sm:[&>h1]:text-5xl lg:[&>h1]:text-6xl [&>p:not(:first-child)]:mt-5 [&>p:not(:first-child)]:max-w-xl [&>p:not(:first-child)]:text-base [&>p:not(:first-child)]:leading-7 [&>p:not(:first-child)]:text-slate-600">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+      <section className="mx-auto mt-6 grid w-[calc(100%_-_2rem)] max-w-7xl overflow-hidden rounded-3xl bg-gradient-to-br from-sand/50 via-white to-brand-50 lg:grid-cols-2 sm:w-[calc(100%_-_3rem)]">
+        <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14 [&>h1]:mt-3 [&>h1]:max-w-xl [&>h1]:font-display [&>h1]:text-4xl [&>h1]:font-medium [&>h1]:tracking-[-0.045em] [&>h1]:text-slate-950 sm:[&>h1]:text-5xl lg:[&>h1]:text-6xl [&>p:not(:first-child)]:mt-5 [&>p:not(:first-child)]:max-w-xl [&>p:not(:first-child)]:text-base [&>p:not(:first-child)]:leading-7 [&>p:not(:first-child)]:text-slate-600">
+          <p className="sk-eyebrow">
             New season, new you
           </p>
-          <h1>Discover your next favourite style.</h1>
+          <h1>Wear your point of view.</h1>
           <p>
-            Explore hand-picked fashion, beauty, and everyday essentials for the
-            whole family.
+            Considered fashion, beauty, and everyday essentials for every way
+            you show up.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
               to="/categories"
-              className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white no-underline hover:bg-brand-600"
+              className="sk-button-primary no-underline"
             >
-              Shop Now
+              Explore the edit
             </Link>
             <Link
-              to="/women"
-              className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700 no-underline hover:border-brand-300 hover:text-brand-700"
+              to="/genz"
+              className="sk-button-secondary no-underline"
             >
-              Explore Women
+              Shop GenZ
             </Link>
           </div>
         </div>
 
-        <div className="min-h-[320px] overflow-hidden bg-slate-100 lg:min-h-[520px]">
+        <div className="relative min-h-[320px] overflow-hidden bg-gradient-to-br from-sand via-canvas to-brand-50 lg:min-h-[520px]">
           <img
-            src="/images/categories/women.jpg"
-            alt="StyleKart seasonal fashion collection"
-            className="h-full w-full object-cover"
+            src="/images/home-fashion-hero.png"
+            alt="Two models showcasing contemporary StyleKart fashion"
+            fetchPriority="high"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover object-top"
           />
         </div>
       </section>
@@ -191,23 +221,47 @@ const Home = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-5">
           {categories.map((category) => (
-            <Link
-              key={category.name}
-              to={category.path}
-              className="group relative min-h-[220px] overflow-hidden rounded-2xl bg-slate-900 text-white no-underline sm:min-h-[280px] [&>img]:absolute [&>img]:inset-0 [&>img]:h-full [&>img]:w-full [&>img]:object-cover [&>img]:transition [&>img]:duration-300 hover:[&>img]:scale-105 [&>div]:absolute [&>div]:inset-x-4 [&>div]:bottom-4 [&>div]:z-10 sm:[&>div]:inset-x-5 sm:[&>div]:bottom-5 [&_h3]:text-xl [&_h3]:font-black sm:[&_h3]:text-2xl [&_p]:mt-1 [&_p]:hidden [&_p]:text-sm [&_p]:leading-5 [&_p]:text-slate-200 sm:[&_p]:block [&_span]:mt-3 [&_span]:inline-block [&_span]:text-xs [&_span]:font-black [&_span]:uppercase [&_span]:tracking-wider after:absolute after:inset-0 after:bg-gradient-to-t after:from-slate-950/90 after:via-slate-900/20 after:to-transparent after:content-['']"
-            >
-              <img src={category.image} alt={category.name} />
-              <div>
-                <h3>{category.name}</h3>
-                <p>{category.description}</p>
-                <span>Shop now</span>
-              </div>
-            </Link>
+              <Link
+                key={category.name}
+                to={category.path}
+                className="group relative min-h-[220px] overflow-hidden rounded-2xl bg-slate-900 text-white no-underline transition-transform duration-300 after:absolute after:inset-0 after:bg-gradient-to-t after:from-slate-950/90 after:via-slate-900/20 after:to-transparent after:content-[''] hover:-translate-y-1 motion-reduce:transition-none sm:min-h-[280px] [&>img]:absolute [&>img]:inset-0 [&>img]:h-full [&>img]:w-full [&>img]:object-cover [&>img]:transition [&>img]:duration-500 hover:[&>img]:scale-105 [&>.category-content]:absolute [&>.category-content]:inset-x-4 [&>.category-content]:bottom-4 [&>.category-content]:z-10 sm:[&>.category-content]:inset-x-5 sm:[>.category-content]:bottom-5 [&_h3]:font-display [&_h3]:text-xl [&_h3]:font-medium sm:[&_h3]:text-2xl [&_p]:mt-1 [&_p]:hidden [&_p]:text-sm [&_p]:leading-5 [&_p]:text-slate-200 sm:[&_p]:block [&_span]:mt-3 [&_span]:inline-block [&_span]:text-xs [&_span]:font-bold [&_span]:uppercase [&_span]:tracking-wider"
+              >
+                <div className="category-art absolute inset-0 grid place-items-center bg-gradient-to-br from-sand to-brand-50">
+                  <strong className="font-display text-6xl font-medium text-brand-700">
+                    {category.name.charAt(0)}
+                  </strong>
+                </div>
+                <img
+                  src={category.image}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  onError={(event) => {
+                    event.currentTarget.hidden = true;
+                  }}
+                />
+                <div className="category-content">
+                  <h3>{category.name}</h3>
+                  <p>{category.description}</p>
+                  <span>Shop now</span>
+                </div>
+              </Link>
           ))}
         </div>
       </section>
+
+      <DiscoverySection
+        title="Shop by occasion"
+        queryKey="occasion"
+        values={occasionOptions}
+      />
+      <DiscoverySection
+        title="Browse by style"
+        queryKey="subcategory"
+        values={styleOptions}
+      />
 
       <ProductSection
         title="Featured products"
@@ -233,9 +287,9 @@ const Home = () => {
         products={recentlyAddedProducts}
       />
 
-      <section className="mx-auto mt-16 flex w-[calc(100%_-_2rem)] max-w-7xl flex-col gap-8 rounded-3xl bg-slate-950 p-8 text-white sm:w-[calc(100%_-_3rem)] lg:flex-row lg:items-center lg:justify-between lg:p-12 [&_h2]:mt-2 [&_h2]:text-3xl [&_h2]:font-black [&_h2]:tracking-[-0.03em] [&_h2]:text-white [&>div>p:last-child]:mt-2 [&>div>p:last-child]:max-w-xl [&>div>p:last-child]:text-sm [&>div>p:last-child]:leading-6 [&>div>p:last-child]:text-slate-300">
+      <section className="mx-auto mt-16 flex w-[calc(100%_-_2rem)] max-w-7xl flex-col gap-8 rounded-3xl bg-slate-950 p-8 text-white sm:w-[calc(100%_-_3rem)] lg:flex-row lg:items-center lg:justify-between lg:p-12 [&_h2]:mt-2 [&_h2]:font-display [&_h2]:text-3xl [&_h2]:font-medium [&_h2]:tracking-[-0.03em] [&_h2]:text-white [&>div>p:last-child]:mt-2 [&>div>p:last-child]:max-w-xl [&>div>p:last-child]:text-sm [&>div>p:last-child]:leading-6 [&>div>p:last-child]:text-slate-300">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-200">
             Stay in the loop
           </p>
           <h2>Style inspiration, delivered.</h2>
