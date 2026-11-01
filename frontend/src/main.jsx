@@ -1,6 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import {
+  Navigate,
+  RouterProvider,
+  createBrowserRouter,
+} from "react-router-dom";
 import { Provider } from "react-redux";
 
 import styleKartStore from "./store/index.js";
@@ -15,6 +19,7 @@ import Wishlist from "./routes/Wishlist.jsx";
 
 import Men from "./pages/Men.jsx";
 import Women from "./pages/Women.jsx";
+import GenZ from "./pages/GenZ.jsx";
 import Kids from "./pages/Kids.jsx";
 import Beauty from "./pages/Beauty.jsx";
 import Categories from "./pages/Categories.jsx";
@@ -70,6 +75,14 @@ const router = createBrowserRouter([
       {
         path: "/women",
         element: <Women />,
+      },
+      {
+        path: "/genz",
+        element: <GenZ />,
+      },
+      {
+        path: "/unisex",
+        element: <Navigate to="/genz" replace />,
       },
       {
         path: "/kids",
