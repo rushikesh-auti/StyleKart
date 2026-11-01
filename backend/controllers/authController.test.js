@@ -5,7 +5,9 @@ const test = require("node:test");
 
 const Admin = require("../models/Admin");
 const User = require("../models/User");
+const googleIdentityService = require("../services/googleIdentityService");
 const {
+  googleLogin,
   loginUser,
   logoutUser,
   registerUser,
@@ -267,6 +269,271 @@ test("shared login reports invalid credentials without setting a session cookie"
     Admin.findOne = originalFindAdmin;
     User.findOne = originalFindUser;
   }
+});
+
+test("Google login creates a customer account and issues the shared session cookie", async () => {
+  const originalFindAdmin = Admin.findOne;
+  const originalFindUser = User.findOne;
+  const originalCreateUser = User.create;
+  const originalVerify = googleIdentityService.verifyGoogleCredential;
+  const originalSecret = process.env.JWT_SECRET;
+  const identity = {
+    googleId: "google-subject-123",
+    email: "customer@stylekart.test",
+    name: "Google Customer",
+  };
+  const response = createResponse();
+  let createdAccount;
+
+  process.env.JWT_SECRET = "test-jwt-secret";
+  Admin.findOne = async () => null;
+  User.findOne = async () => null;
+  User.create = async (account) => {
+    createdAccount = account;
+    return { _id: "google-customer-id", ...account };
+  };
+  googleIdentityService.verifyGoogleCredential = async (credential) => {
+    assert.equal(credential, "verified-google-id-token");
+    return identity;
+  };
+
+  try {
+    await googleLogin(
+      { body: { credential: "verified-google-id-token", role: "admin" } },
+      response,
+      (error) => {
+        throw error;
+      },
+    );
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(createdAccount, {
+      name: identity.name,
+      email: identity.email,
+      googleId: identity.googleId,
+      role: "user",
+    });
+    assert.equal(response.cookieName, "stylekart_session");
+    assert.equal(response.cookieOptions.httpOnly, true);
+    assert.deepEqual(response.body.user, {
+      id: "google-customer-id",
+      name: identity.name,
+      email: identity.email,
+      role: "user",
+    });
+    assert.equal(
+      jwt.verify(response.cookieValue, process.env.JWT_SECRET).role,
+      "user",
+    );
+  } finally {
+    Admin.findOne = originalFindAdmin;
+    User.findOne = originalFindUser;
+    User.create = originalCreateUser;
+    googleIdentityService.verifyGoogleCredential = originalVerify;
+    if (originalSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = originalSecret;
+  }
+});
+
+test("Google login signs in an existing linked customer without changing its account", async () => {
+  const originalFindAdmin = Admin.findOne;
+  const originalFindUser = User.findOne;
+  const originalCreateUser = User.create;
+  const originalVerify = googleIdentityService.verifyGoogleCredential;
+  const originalSecret = process.env.JWT_SECRET;
+  const user = {
+    _id: "linked-google-customer",
+    name: "Linked Customer",
+    email: "customer@stylekart.test",
+    googleId: "google-subject-123",
+    role: "user",
+  };
+  const response = createResponse();
+
+  process.env.JWT_SECRET = "test-jwt-secret";
+  Admin.findOne = async () => null;
+  User.findOne = async (query) =>
+    query.googleId === user.googleId ? user : null;
+  User.create = async () => {
+    throw new Error("A linked account must not be recreated.");
+  };
+  googleIdentityService.verifyGoogleCredential = async () => ({
+    googleId: user.googleId,
+    email: user.email,
+    name: user.name,
+  });
+
+  try {
+    await googleLogin({ body: { credential: "verified-token" } }, response, (error) => {
+      throw error;
+    });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.user.id, user._id);
+    assert.equal(response.cookieName, "stylekart_session");
+  } finally {
+    Admin.findOne = originalFindAdmin;
+    User.findOne = originalFindUser;
+    User.create = originalCreateUser;
+    googleIdentityService.verifyGoogleCredential = originalVerify;
+    if (originalSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = originalSecret;
+  }
+});
+
+test("Google login does not automatically link an existing password account", async () => {
+  const originalFindAdmin = Admin.findOne;
+  const originalFindUser = User.findOne;
+  const originalCreateUser = User.create;
+  const originalVerify = googleIdentityService.verifyGoogleCredential;
+  const response = createResponse();
+  const passwordAccount = {
+    _id: "password-customer",
+    email: "customer@stylekart.test",
+    role: "user",
+  };
+
+  Admin.findOne = async () => null;
+  User.findOne = async (query) =>
+    query.googleId ? null : passwordAccount;
+  User.create = async () => {
+    throw new Error("An existing account must not be linked automatically.");
+  };
+  googleIdentityService.verifyGoogleCredential = async () => ({
+    googleId: "google-subject-123",
+    email: passwordAccount.email,
+    name: "Google Customer",
+  });
+
+  try {
+    await googleLogin({ body: { credential: "verified-token" } }, response, (error) => {
+      throw error;
+    });
+
+    assert.equal(response.statusCode, 409);
+    assert.match(response.body.message, /Sign in with your password/);
+    assert.equal(response.cookieName, "");
+  } finally {
+    Admin.findOne = originalFindAdmin;
+    User.findOne = originalFindUser;
+    User.create = originalCreateUser;
+    googleIdentityService.verifyGoogleCredential = originalVerify;
+  }
+});
+
+test("Google login rejects an email already assigned to an admin", async () => {
+  const originalFindAdmin = Admin.findOne;
+  const originalFindUser = User.findOne;
+  const originalVerify = googleIdentityService.verifyGoogleCredential;
+  const response = createResponse();
+
+  Admin.findOne = async () => ({ _id: "existing-admin", role: "admin" });
+  User.findOne = async () => {
+    throw new Error("Customer lookup should not run for an admin email.");
+  };
+  googleIdentityService.verifyGoogleCredential = async () => ({
+    googleId: "google-subject-123",
+    email: "admin@stylekart.test",
+    name: "Google Admin",
+  });
+
+  try {
+    await googleLogin({ body: { credential: "verified-token" } }, response, (error) => {
+      throw error;
+    });
+
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.cookieName, "");
+  } finally {
+    Admin.findOne = originalFindAdmin;
+    User.findOne = originalFindUser;
+    googleIdentityService.verifyGoogleCredential = originalVerify;
+  }
+});
+
+test("Google login rejects a duplicate email race instead of issuing a session", async () => {
+  const originalFindAdmin = Admin.findOne;
+  const originalFindUser = User.findOne;
+  const originalCreateUser = User.create;
+  const originalVerify = googleIdentityService.verifyGoogleCredential;
+  const response = createResponse();
+
+  Admin.findOne = async () => null;
+  User.findOne = async () => null;
+  User.create = async () => {
+    const error = new Error("Duplicate email");
+    error.code = 11000;
+    throw error;
+  };
+  googleIdentityService.verifyGoogleCredential = async () => ({
+    googleId: "google-subject-123",
+    email: "customer@stylekart.test",
+    name: "Google Customer",
+  });
+
+  try {
+    await googleLogin({ body: { credential: "verified-token" } }, response, (error) => {
+      throw error;
+    });
+
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.cookieName, "");
+  } finally {
+    Admin.findOne = originalFindAdmin;
+    User.findOne = originalFindUser;
+    User.create = originalCreateUser;
+    googleIdentityService.verifyGoogleCredential = originalVerify;
+  }
+});
+
+test("password login rejects a passwordless Google account", async () => {
+  const originalFindAdmin = Admin.findOne;
+  const originalFindUser = User.findOne;
+  const response = createResponse();
+  const user = {
+    _id: "google-customer-id",
+    email: "customer@stylekart.test",
+    role: "user",
+  };
+
+  Admin.findOne = async () => null;
+  User.findOne = () => ({
+    select: async () => user,
+  });
+
+  try {
+    await loginUser(
+      { body: { email: user.email, password: "any-password" } },
+      response,
+      (error) => {
+        throw error;
+      },
+    );
+
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.cookieName, "");
+  } finally {
+    Admin.findOne = originalFindAdmin;
+    User.findOne = originalFindUser;
+  }
+});
+
+test("the User model allows passwordless records only with a Google identity", async () => {
+  const googleUser = new User({
+    name: "Google Customer",
+    email: "google@stylekart.test",
+    googleId: "google-subject-123",
+  });
+  const passwordUser = new User({
+    name: "Password Customer",
+    email: "password@stylekart.test",
+  });
+
+  await googleUser.validate();
+  await assert.rejects(passwordUser.validate(), (error) => {
+    assert.ok(error.errors.password);
+    return true;
+  });
 });
 
 test("logout clears the existing shared session cookie", () => {

@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const authRoutes = require("./authRoutes");
-const { loginUser } = require("../controllers/authController");
+const { googleLogin, loginUser } = require("../controllers/authController");
 
 const getRouteHandler = (path) => {
   const routeLayer = authRoutes.stack.find(
@@ -32,4 +32,8 @@ test("registration route remains separate from admin login", () => {
     registration.route.stack.at(-1)?.handle,
     adminLogin.route.stack.at(-1)?.handle,
   );
+});
+
+test("Google sign-in is a separate POST endpoint", () => {
+  assert.equal(getRouteHandler("/google"), googleLogin);
 });
