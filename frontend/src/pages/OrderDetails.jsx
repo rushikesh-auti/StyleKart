@@ -222,7 +222,7 @@ const OrderDetails = () => {
               className="grid grid-cols-[62px_minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 py-3 last:border-b-0 [&_img]:h-[78px] [&_img]:w-[62px] [&_img]:rounded-lg [&_img]:bg-slate-100 [&_img]:object-cover [&_p]:mt-1 [&_p]:text-xs [&_p]:leading-5 [&_p]:text-slate-500"
               key={`${item.productId}-${item.selectedSize}-${item.selectedColor}`}
             >
-              <img src={item.image} alt="" />
+              <img src={item.image} alt="" loading="lazy" decoding="async" />
               <div>
                 <strong>{item.itemName}</strong>
                 <p>
