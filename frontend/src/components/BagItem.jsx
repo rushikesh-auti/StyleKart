@@ -58,6 +58,8 @@ const BagItem = ({ entry, item, quantity }) => {
         <img
           src={getProductImageUrl(item.image)}
           alt={item.item_name}
+          loading="lazy"
+          decoding="async"
         />
       </Link>
 
@@ -94,6 +96,7 @@ const BagItem = ({ entry, item, quantity }) => {
           <div>
             <button
               type="button"
+              aria-label={`Decrease quantity of ${item.item_name}`}
               disabled={quantity <= 1}
               onClick={() => updateQuantity(quantity - 1)}
             >
@@ -104,6 +107,7 @@ const BagItem = ({ entry, item, quantity }) => {
 
             <button
               type="button"
+              aria-label={`Increase quantity of ${item.item_name}`}
               disabled={quantity >= availableStock}
               onClick={() => updateQuantity(quantity + 1)}
             >

@@ -5,6 +5,7 @@ import { FaHeart, FaTrashCan } from "react-icons/fa6";
 import { bagActions } from "../store/bagSlice";
 import { wishlistActions } from "../store/wishlistSlice";
 import getProductImageUrl from "../utils/productImageUrl";
+import AccountNavigation from "../components/AccountNavigation";
 
 const Wishlist = () => {
   const dispatch = useDispatch();
@@ -49,10 +50,10 @@ const Wishlist = () => {
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+          <p className="sk-eyebrow">
             Saved for later
           </p>
-          <h1 className="text-3xl font-black tracking-[-0.03em] text-slate-950 sm:text-4xl">
+          <h1 className="sk-page-title">
             My Wishlist
           </h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -63,6 +64,7 @@ const Wishlist = () => {
         <FaHeart className="hidden text-3xl text-brand-500 sm:block" />
       </div>
 
+      <AccountNavigation />
       {wishlistProducts.length === 0 ? (
         <section className="grid min-h-[45vh] place-content-center justify-items-center rounded-3xl border border-dashed border-slate-300 bg-white px-6 text-center">
           <div className="grid h-16 w-16 place-items-center rounded-full bg-brand-50 text-2xl text-brand-600">
@@ -97,6 +99,8 @@ const Wishlist = () => {
                   src={getProductImageUrl(product.image)}
                   className="h-full w-full object-cover transition duration-300 hover:scale-105"
                   alt={product.item_name}
+                  loading="lazy"
+                  decoding="async"
                 />
               </Link>
 
