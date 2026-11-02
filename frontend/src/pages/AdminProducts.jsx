@@ -138,6 +138,8 @@ const AdminProducts = () => {
                         alt={product.item_name}
                         width="60"
                         height="75"
+                        loading="lazy"
+                        decoding="async"
                         className="h-[75px] w-[60px] rounded-lg object-cover"
                       />
                     </td>
@@ -153,7 +155,9 @@ const AdminProducts = () => {
                     </td>
                     <td>
                       <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">
-                        {product.category}
+                        {product.category === "unisex"
+                          ? "GenZ"
+                          : product.category}
                       </span>
                     </td>
                     <td>

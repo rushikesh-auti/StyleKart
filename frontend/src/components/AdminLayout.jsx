@@ -158,7 +158,7 @@ const AdminLayout = () => {
           </div>
         </div>
 
-        <p className="mb-3 px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+        <p className="mb-3 px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
           Store management
         </p>
         <NavigationLinks />

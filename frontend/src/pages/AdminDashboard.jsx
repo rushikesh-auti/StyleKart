@@ -456,7 +456,9 @@ const AdminDashboard = () => {
                 <li key={category.category}>
                   <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold capitalize text-slate-700">
-                      {category.category}
+                      {category.category === "unisex"
+                        ? "GenZ"
+                        : category.category}
                     </span>
                     <span className="font-bold text-slate-900">
                       {Number(category.quantitySold || 0).toLocaleString("en-IN")}

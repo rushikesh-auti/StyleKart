@@ -126,7 +126,11 @@ const AdminInventory = () => {
                         {product.item_name}
                       </small>
                     </td>
-                    <td>{product.category}</td>
+                    <td>
+                      {product.category === "unisex"
+                        ? "GenZ"
+                        : product.category}
+                    </td>
                     <td className="text-right">
                       ₹{product.current_price.toLocaleString("en-IN")}
                     </td>
