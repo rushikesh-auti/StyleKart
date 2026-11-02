@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import { bagActions } from "../store/bagSlice";
 import { userFetch } from "../utils/userApi";
 import getProductImageUrl from "../utils/productImageUrl";
+import AccountNavigation from "../components/AccountNavigation";
 
 const OCCASIONS = [
   "college",
@@ -332,10 +333,10 @@ const Wardrobe = () => {
   return (
     <main className="mx-auto w-full max-w-7xl space-y-10 px-4 py-8 pb-28 sm:px-6 lg:px-8">
       <header className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-brand-900 px-6 py-8 text-white sm:px-10 sm:py-10">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-pink-200">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-200">
           StyleKart wardrobe intelligence
         </p>
-        <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-4xl">
+        <h1 className="mt-3 max-w-3xl font-display text-3xl font-medium tracking-tight sm:text-4xl">
           Build more outfits around what you already own.
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">
@@ -352,6 +353,7 @@ const Wardrobe = () => {
         </div>
       </header>
 
+      <AccountNavigation />
       {error && (
         <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
           {error}
