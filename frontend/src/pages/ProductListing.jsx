@@ -7,6 +7,8 @@ import { getProducts } from "../utils/productApi";
 const defaultFilters = {
   category: "",
   brand: "",
+  subcategory: "",
+  occasion: "",
   minPrice: "",
   maxPrice: "",
   minDiscount: "",
@@ -18,15 +20,20 @@ const defaultFilters = {
 
 const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
   const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("search") || "";
+  const subcategoryQuery = searchParams.get("subcategory") || "";
+  const occasionQuery = searchParams.get("occasion") || "";
   const [searchText, setSearchText] = useState(
-    searchParams.get("search") || "",
+    searchQuery,
   );
   const [debouncedSearch, setDebouncedSearch] = useState(
-    searchParams.get("search") || "",
+    searchQuery,
   );
   const [filters, setFilters] = useState({
     ...defaultFilters,
     category: initialCategory,
+    subcategory: subcategoryQuery,
+    occasion: occasionQuery,
   });
   const [sort, setSort] = useState("recommended");
   const [page, setPage] = useState(1);
@@ -34,6 +41,31 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const activeFilterCount = Object.entries(filters).filter(
+    ([key, value]) => key !== "category" && value !== "",
+  ).length;
+
+  useEffect(() => {
+    setFilters((currentFilters) =>
+      currentFilters.category === initialCategory
+        ? currentFilters
+        : { ...defaultFilters, category: initialCategory },
+    );
+    setPage(1);
+  }, [initialCategory]);
+
+  useEffect(() => {
+    setSearchText(searchQuery);
+    setDebouncedSearch(searchQuery);
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      subcategory: subcategoryQuery,
+      occasion: occasionQuery,
+    }));
+    setPage(1);
+  }, [occasionQuery, searchQuery, subcategoryQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -120,9 +152,9 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <section className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-[-0.035em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl [&>div>p:last-child]:mt-2 [&>div>p:last-child]:text-sm [&>div>p:last-child]:text-slate-500">
+      <section className="mb-7 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between [&_h1]:font-display [&_h1]:text-3xl [&_h1]:font-medium [&_h1]:tracking-[-0.035em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl [&>div>p:last-child]:mt-2 [&>div>p:last-child]:text-sm [&>div>p:last-child]:text-slate-500">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
+          <p className="sk-eyebrow">
             StyleKart catalogue
           </p>
           <h1>{title}</h1>
@@ -135,7 +167,17 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 [&_label]:text-xs [&_label]:font-black [&_label]:text-slate-600 [&_select]:min-w-[180px] [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:bg-white [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-sm">
+        <div className="flex flex-wrap items-center gap-3 [&_label]:text-xs [&_label]:font-black [&_label]:text-slate-600 [&_select]:min-w-[150px] [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:bg-white [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-sm sm:[&_select]:min-w-[180px]">
+          <button
+            type="button"
+            className="sk-button-secondary lg:hidden"
+            aria-controls="product-filters"
+            aria-expanded={mobileFiltersOpen}
+            onClick={() => setMobileFiltersOpen((open) => !open)}
+          >
+            {mobileFiltersOpen ? "Hide filters" : "Filters"}
+            {activeFilterCount > 0 && ` (${activeFilterCount})`}
+          </button>
           <label htmlFor="sort-products">Sort by</label>
           <select
             id="sort-products"
@@ -156,7 +198,10 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
       </section>
 
       <section className="grid items-start gap-7 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <aside className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:sticky lg:top-24 lg:grid-cols-1 [&_label]:text-xs [&_label]:font-black [&_label]:text-slate-600 [&_input]:w-full [&_input]:rounded-xl [&_input]:border [&_input]:border-slate-300 [&_input]:px-3 [&_input]:py-2.5 [&_select]:w-full [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:px-3 [&_select]:py-2.5">
+        <aside
+          id="product-filters"
+          className={`${mobileFiltersOpen ? "grid" : "hidden"} gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:sticky lg:top-24 lg:grid lg:grid-cols-1 [&_label]:text-xs [&_label]:font-black [&_label]:text-slate-600 [&_input]:w-full [&_input]:rounded-xl [&_input]:border [&_input]:border-slate-300 [&_input]:px-3 [&_input]:py-2.5 [&_select]:w-full [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:px-3 [&_select]:py-2.5`}
+        >
           <div className="col-span-full mb-1 flex items-center justify-between [&_h2]:text-lg [&_h2]:font-black [&_h2]:text-slate-950 [&_button]:bg-transparent [&_button]:text-xs [&_button]:font-black [&_button]:text-brand-700">
             <h2>Filters</h2>
             <button type="button" onClick={clearFilters}>
@@ -185,6 +230,7 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
             <option value="women">Women</option>
             <option value="kids">Kids</option>
             <option value="beauty">Beauty</option>
+            <option value="unisex">GenZ</option>
           </select>
 
           <label htmlFor="filter-brand">Brand</label>
@@ -193,6 +239,24 @@ const ProductListing = ({ title = "Shop Products", initialCategory = "" }) => {
             name="brand"
             value={filters.brand}
             placeholder="e.g. Nike"
+            onChange={updateFilter}
+          />
+
+          <label htmlFor="filter-style">Style / subcategory</label>
+          <input
+            id="filter-style"
+            name="subcategory"
+            value={filters.subcategory}
+            placeholder="Browse by product type"
+            onChange={updateFilter}
+          />
+
+          <label htmlFor="filter-occasion">Occasion</label>
+          <input
+            id="filter-occasion"
+            name="occasion"
+            value={filters.occasion}
+            placeholder="Browse by occasion"
             onChange={updateFilter}
           />
 

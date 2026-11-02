@@ -306,7 +306,7 @@ const ProductDetails = () => {
       <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] lg:gap-12">
         <div className="grid gap-4 sm:grid-cols-[80px_minmax(0,1fr)]">
           <div className="order-2 flex gap-2 overflow-x-auto sm:order-none sm:flex-col">
-            {galleryImages.map((image) => (
+            {galleryImages.map((image, index) => (
               <button
                 key={image}
                 type="button"
@@ -316,9 +316,15 @@ const ProductDetails = () => {
                     : "border-transparent"
                 }`}
                 onClick={() => setSelectedImage(image)}
-                aria-label={`View ${product.item_name}`}
+                aria-label={`View image ${index + 1} of ${product.item_name}`}
+                aria-pressed={selectedImage === image}
               >
-                <img src={getProductImageUrl(image)} alt="" />
+                <img
+                  src={getProductImageUrl(image)}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
               </button>
             ))}
           </div>
@@ -327,12 +333,13 @@ const ProductDetails = () => {
             <img
               src={imagePath}
               alt={product.item_name}
+              fetchPriority="high"
               className="h-full w-full object-cover"
             />
           </div>
         </div>
 
-        <div className="[&_h1]:mt-2 [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-[-0.035em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl">
+        <div className="[&_h1]:mt-2 [&_h1]:font-display [&_h1]:text-3xl [&_h1]:font-medium [&_h1]:tracking-[-0.035em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl">
           <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
             {product.brand || product.company}
           </p>
@@ -404,6 +411,7 @@ const ProductDetails = () => {
                       setQuantity(1);
                       setSelectionError("");
                     }}
+                    aria-pressed={selectedSize === size}
                   >
                     {size}
                   </button>
@@ -440,6 +448,7 @@ const ProductDetails = () => {
                       setSelectedColor(color);
                       setQuantity(1);
                     }}
+                    aria-pressed={selectedColor === color}
                   >
                     {color}
                   </button>
@@ -461,6 +470,7 @@ const ProductDetails = () => {
             <div className="mt-3 inline-flex items-center overflow-hidden rounded-xl border border-slate-300 [&_button]:grid [&_button]:h-10 [&_button]:w-11 [&_button]:place-items-center [&_button]:bg-white [&_button]:font-black [&_button]:text-slate-900 [&_span]:grid [&_span]:h-10 [&_span]:w-11 [&_span]:place-items-center [&_span]:border-x [&_span]:border-slate-300 [&_span]:font-black">
               <button
                 type="button"
+                aria-label="Decrease quantity"
                 disabled={quantity <= 1}
                 onClick={() => updateQuantity(quantity - 1)}
               >
@@ -471,6 +481,7 @@ const ProductDetails = () => {
 
               <button
                 type="button"
+                aria-label="Increase quantity"
                 disabled={
                   !hasSelectedVariant || quantity >= selectedVariantStock
                 }
@@ -527,7 +538,8 @@ const ProductDetails = () => {
           <section className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-black [&_h2]:text-slate-950 [&_p]:my-2 [&_p]:text-sm [&_p]:text-slate-600">
             <h2>Product information</h2>
             <p>
-              <strong>Category:</strong> {product.category}
+              <strong>Category:</strong>{" "}
+              {product.category === "unisex" ? "GenZ" : product.category}
             </p>
             <p>
               <strong>Return policy:</strong> {product.return_period} day
