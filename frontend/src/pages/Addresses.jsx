@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-
 import { userFetch } from "../utils/userApi";
+import AccountNavigation from "../components/AccountNavigation";
 
 const emptyAddress = {
   fullName: "",
@@ -129,25 +128,14 @@ const Addresses = () => {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <header className="mb-7 [&_h1]:text-3xl [&_h1]:font-black [&_h1]:tracking-[-0.03em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl [&>p:last-child]:mt-2 [&>p:last-child]:text-sm [&>p:last-child]:text-slate-500">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-600">
-          My account
-        </p>
+      <header className="mb-7 [&_h1]:font-display [&_h1]:text-3xl [&_h1]:font-medium [&_h1]:tracking-[-0.03em] [&_h1]:text-slate-950 sm:[&_h1]:text-4xl [&>p:last-child]:mt-2 [&>p:last-child]:text-sm [&>p:last-child]:text-slate-500">
+        <p className="sk-eyebrow">My account</p>
         <h1>Saved addresses</h1>
         <p>Use a saved address during checkout.</p>
       </header>
 
-      <section className="grid items-start gap-7 md:grid-cols-[210px_minmax(0,1fr)]">
-        <nav className="flex overflow-x-auto rounded-2xl border border-slate-200 bg-white md:flex-col [&_a]:whitespace-nowrap [&_a]:border-r [&_a]:border-slate-200 [&_a]:px-4 [&_a]:py-3 [&_a]:text-sm [&_a]:font-bold [&_a]:text-slate-600 [&_a]:no-underline hover:[&_a]:bg-brand-50 md:[&_a]:border-b md:[&_a]:border-r-0">
-          <Link to="/profile">Profile</Link>
-          <Link to="/orders">Orders</Link>
-          <Link to="/wishlist">Wishlist</Link>
-          <Link className="bg-brand-50 text-brand-700" to="/addresses">
-            Addresses
-          </Link>
-        </nav>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <AccountNavigation />
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between [&_h2]:text-xl [&_h2]:font-black [&_h2]:text-slate-950 [&_p]:mt-1 [&_p]:text-sm [&_p]:text-slate-500 [&>button]:rounded-xl [&>button]:bg-slate-950 [&>button]:px-4 [&>button]:py-2.5 [&>button]:text-sm [&>button]:font-black [&>button]:text-white">
             <div>
               <h2>Delivery addresses</h2>
@@ -354,7 +342,6 @@ const Addresses = () => {
               </article>
             ))}
           </div>
-        </section>
       </section>
     </main>
   );

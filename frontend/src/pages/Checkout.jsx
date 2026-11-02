@@ -288,6 +288,8 @@ const Checkout = () => {
                       className="h-[78px] w-[62px] rounded-lg bg-slate-100 object-cover"
                       src={getProductImageUrl(product.image)}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div>
                       <strong className="text-sm text-slate-950">
