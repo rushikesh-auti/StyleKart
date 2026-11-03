@@ -142,10 +142,11 @@ const Checkout = () => {
         amount: paymentOrder.amount,
         currency: paymentOrder.currency,
         name: "StyleKart",
+        image: `${window.location.origin}/images/stylekart.png`,
         description: "Secure StyleKart order payment",
         order_id: paymentOrder.orderId,
         prefill: { name: user?.name || "", email: user?.email || "" },
-        theme: { color: "#db2777" },
+        theme: { color: "#A66B52" },
         modal: { ondismiss: () => reject(new Error("Payment was cancelled.")) },
         handler: async (response) => {
           try {
