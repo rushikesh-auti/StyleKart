@@ -5,6 +5,7 @@ const Coupon = require("../models/Coupon");
 const Cart = require("../models/Cart");
 const Order = require("../models/Order");
 const PaymentAttempt = require("../models/PaymentAttempt");
+const Product = require("../models/Product");
 const { findValidCoupon, normalizeCode } = require("./couponService");
 const {
   createInventoryError,
